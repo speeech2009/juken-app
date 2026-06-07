@@ -1,0 +1,19 @@
+{
+  "name": "中学受験トレーニング",
+  "short_name": "受験トレーニング",
+  "description": "早稲田・海城・本郷 中学受験 単元別トレーニングアプリ",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f3ee",
+  "theme_color": "#1a1814",
+  "orientation": "portrait-primary",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

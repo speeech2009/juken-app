@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- 背景（角丸正方形） -->
+  <rect width="512" height="512" rx="110" fill="#1a1814"/>
+  <!-- 上部アクセントライン -->
+  <rect x="72" y="64" width="368" height="8" rx="4" fill="#c0392b"/>
+  <!-- 大きな「受」 -->
+  <text x="256" y="310"
+    font-family="'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', sans-serif"
+    font-size="230" font-weight="900" fill="#ffffff"
+    text-anchor="middle" dominant-baseline="middle">受</text>
+  <!-- 下部「験」小さめ -->
+  <text x="256" y="430"
+    font-family="'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', sans-serif"
+    font-size="60" font-weight="700" fill="#9e9a93"
+    text-anchor="middle">験トレーニング</text>
+  <!-- 下部アクセントライン -->
+  <rect x="72" y="440" width="368" height="8" rx="4" fill="#1a5fb4"/>
+</svg>
