@@ -3819,7 +3819,7 @@ function renderSchoolGrid() {
 
   if (tab === 'target') {
     grid.innerHTML = entries.map(([name, sc]) => {
-      const castle = sc.castle;
+      const castle = sc.castle || { name: '', reading: '', nickname: '', location: '', grad: `linear-gradient(135deg, ${sc.color}88 0%, ${sc.color} 100%)`, border: sc.color, photo: null };
       let totalCorrect = 0, totalQ = 0;
       Object.keys(scores).filter(k => k.startsWith(name + '::')).forEach(k => {
         totalCorrect += scores[k].correct;
