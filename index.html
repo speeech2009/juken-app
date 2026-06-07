@@ -1139,8 +1139,8 @@ input, textarea, select {
   <button class="bn-item bn-camera" onclick="openPhotoModal()">
     <div class="bn-camera-inner">📷</div>
   </button>
-  <button class="bn-item" id="bn-past" onclick="bnNavPast()">
-    <span class="bn-icon">📄</span>過去問
+  <button class="bn-item" id="bn-tips" onclick="bnNav('scrTips', 'bn-tips')">
+    <span class="bn-icon">📖</span>Tips
   </button>
   <button class="bn-item" id="bn-parent" onclick="bnNav('scrParent', 'bn-parent')">
     <span class="bn-icon">👨‍👩‍👧</span>保護者
@@ -1366,6 +1366,15 @@ input, textarea, select {
       </div>
     </div>
 
+    <!-- Tips / 読み物 -->
+    <div class="screen" id="scrTips">
+      <div style="padding:14px 16px 10px;border-bottom:1px solid var(--border);">
+        <p style="font-size:14px;font-weight:700;">📖 中学受験 Tips</p>
+        <p style="font-size:11px;color:var(--text2);margin-top:2px;">知っておくと役立つ基礎知識</p>
+      </div>
+      <div id="tipsContent" style="padding:12px 14px 80px;"></div>
+    </div>
+
     <!-- 過去問ブラウザ -->
     <div class="screen" id="scrPastExam">
       <div class="breadcrumb">
@@ -1443,6 +1452,7 @@ const SCHOOLS = {
     tag: '早稲田中学校',
     location: '東京・新宿区',
     group: 'target',
+    intro: '早稲田大学の系属校で、卒業生の約4割が早稲田大学へ内部進学できます。「自由と個性」を大切にした風土で、部活動や課外活動が盛ん。のびのびした校風の中で自分らしさを発揮できる男子校です。\n\n入試では算数・国語の得点力と語彙力が鍵。記述は40字以内の短めなので、要点をコンパクトにまとめる練習が有効です。',
     castle: { name: '姫路城', reading: 'ひめじじょう', nickname: '白鷺城', location: '兵庫県姫路市', grad: 'linear-gradient(135deg, #7a5a10 0%, #c9a227 100%)', border: '#c9a227', photo: 'https://commons.wikimedia.org/wiki/Special:FilePath/Himeji_castle_in_may_2015.jpg?width=400' },
     exam: { 国語: '50分・60点', 算数: '50分・60点', 社会: '30分・40点', 理科: '30分・40点' },
     tendency: {
@@ -1460,6 +1470,7 @@ const SCHOOLS = {
     tag: '海城中学校',
     location: '東京・新宿区',
     group: 'target',
+    intro: '「新しい紳士教育」を掲げる進学男子校。東大・医学部進学者数でも上位の実力校です。論理的に考え、書いて表現する力を最重視した教育が特徴で、入試でも「なぜそう考えるか」を40〜100字で論述させる問題が頻出。\n\n答えを丸暗記するより「理由を言葉にする」訓練が合格への近道。算数も途中過程を書かせる形式が多いです。',
     castle: { name: '松本城', reading: 'まつもとじょう', nickname: '烏城', location: '長野県松本市', grad: 'linear-gradient(135deg, #1a2a4a 0%, #2c4a7c 100%)', border: '#4a7cc9', photo: 'https://commons.wikimedia.org/wiki/Special:FilePath/Matsumoto_Castle05s5s4592.jpg?width=400' },
     exam: { 国語: '50分・120点', 算数: '50分・120点', 社会: '45分・80点', 理科: '45分・80点' },
     tendency: {
@@ -1506,6 +1517,8 @@ const SCHOOLS = {
     bgColor: '#d6f0da',
     tag: '本郷中学校',
     location: '東京・豊島区',
+    group: 'target',
+    intro: '仏教の精神をベースにした穏やかな校風の男子校。中高一貫教育で面倒見がよく、アットホームな雰囲気が特徴。生徒一人ひとりをしっかり見てくれる先生たちが揃っています。\n\n入試では「文中の言葉を使って答えなさい」という指示が特徴的。本文から根拠を探し出し、そのまま活用する練習が有効です。連問形式（前の答えを使って次を解く）も頻出。',
     exam: { 国語: '50分', 算数: '50分', 社会: '40分', 理科: '40分' },
     tendency: {
       算数: '50分。前半は小問集合（基礎確認）・後半は大問（思考力問題）の2部構成。大問では前の小問の答えを後の小問で使う「連問形式」が特徴。図形・割合・速さが頻出。典型問題の正確・迅速な処理＋論理的展開力の両方が問われる。',
@@ -1538,6 +1551,7 @@ const SCHOOLS = {
     tag: '浅野中学校',
     location: '神奈川・横浜市',
     group: 'target',
+    intro: '神奈川・横浜の難関男子校。理数教育に強みがあり、東大・医学部進学者も多数。水泳が必修というユニークな文化も。アットホームな雰囲気で面倒見がよい学校として知られています。\n\n入試では因果関係を60〜120字で説明させる記述が特徴的。「なぜ〇〇が起きたのか」を自分の言葉で書く練習が効きます。',
     castle: { name: '彦根城', reading: 'ひこねじょう', nickname: '金亀城', location: '滋賀県彦根市', grad: 'linear-gradient(135deg, #5a1a20 0%, #9a2a38 100%)', border: '#c94040', photo: 'https://commons.wikimedia.org/wiki/Special:FilePath/Hikone_Castle_Biwa.jpg?width=400' },
     exam: { 国語: '50分', 算数: '50分', 社会: '40分', 理科: '40分' },
     tendency: {
@@ -1630,6 +1644,7 @@ const SCHOOLS = {
     tag: '攻玉社中学校',
     location: '東京・品川区',
     group: 'target',
+    intro: '創立160年超の伝統男子校。海外大学への進学実績が豊富で、国際的な視野を育てる教育が特徴です。品川という立地もあり交通の便がよく、通学面でも人気。\n\n入試は知識を問う短答問題と2〜3行の説明問題が混在するスタイル。基礎知識の正確な定着と、それを言葉で説明する力が求められます。',
     castle: { name: '犬山城', reading: 'いぬやまじょう', nickname: '白帝城', location: '愛知県犬山市', grad: 'linear-gradient(135deg, #2a4a20 0%, #4a8038 100%)', border: '#5a9a40', photo: 'https://commons.wikimedia.org/wiki/Special:FilePath/Inuyama_Castle_Keep_Tower_20170409.jpg?width=400' },
     exam: { 国語: '50分', 算数: '50分', 社会: '40分', 理科: '40分' },
     tendency: {
@@ -1913,6 +1928,7 @@ const SCHOOLS = {
     tag: '広尾学園中学校',
     location: '東京・港区',
     group: 'target',
+    intro: '共学校で国際色が豊か。インターナショナルコースと医進・サイエンスコースが充実しており、海外大学への進学実績も目を引きます。港区という立地で、多様なバックグラウンドの生徒が集まります。\n\n入試では現代的・社会的なテーマを扱う問題が多く、時事知識が重要。グラフや統計データを読み取って考察する問題も頻出です。',
     castle: { name: '松江城', reading: 'まつえじょう', nickname: '千鳥城', location: '島根県松江市', grad: 'linear-gradient(135deg, #1a3050 0%, #2a5070 100%)', border: '#4080a0', photo: 'https://commons.wikimedia.org/wiki/Special:FilePath/Matsue_castle11n4592.jpg?width=400' },
     exam: { 国語: '50分', 算数: '50分', 社会: '30分', 理科: '30分' },
     tendency: {
@@ -3420,6 +3436,7 @@ function showScreen(id) {
   if (id === 'scrParent') renderParent();
   if (id === 'scrSubject') renderSubjectGrid();
   if (id === 'scrSchool') renderSchoolGrid();
+  if (id === 'scrTips') renderTips();
   if (id === 'scrPastExam') {
     document.getElementById('askResult').classList.remove('shown');
     document.getElementById('askQuestion').value = '';
@@ -3435,7 +3452,7 @@ function showScreen(id) {
   // ボトムナビのアクティブ更新
   const bnMap = { scrSchool:'bn-home', scrSubject:'bn-home', scrUnit:'bn-home',
     scrLevel:'bn-home', scrQuestion:'bn-home', scrResult:'bn-home',
-    scrScore:'bn-score', scrParent:'bn-parent', scrPastExam:'bn-past' };
+    scrScore:'bn-score', scrParent:'bn-parent', scrTips:'bn-tips' };
   document.querySelectorAll('.bn-item').forEach(b => b.classList.remove('active'));
   const bnId = bnMap[id];
   if (bnId) document.getElementById(bnId)?.classList.add('active');
@@ -3843,10 +3860,13 @@ function renderSchoolGrid() {
           <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;">${examChips}</div>
           ${pct !== null ? `<div style="font-size:10px;color:var(--text3);margin-bottom:8px;">学習済み ${totalQ}問・正解率 ${pct}%</div>` : ''}
           <!-- アクションボタン -->
-          <div style="display:flex;gap:8px;">
+          <div style="display:flex;gap:8px;margin-bottom:${sc.intro ? '8px' : '0'};">
             <button onclick="openPastExams('${name}')" style="flex:1;font-size:12px;padding:8px 0;border:1.5px solid var(--border2);border-radius:8px;background:var(--surface);cursor:pointer;font-family:'Noto Sans JP',sans-serif;color:var(--text2);">📄 過去問・解答</button>
             <button onclick="selectSchool('${name}')" style="flex:1;font-size:12px;padding:8px 0;border:1.5px solid ${sc.color}60;border-radius:8px;background:${sc.bgColor};cursor:pointer;font-family:'Noto Sans JP',sans-serif;color:${sc.color};font-weight:700;">✏️ 単元練習</button>
           </div>
+          ${sc.intro ? `
+          <button onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.textContent=this.textContent.includes('▼')?'🏫 学校紹介 ▼':'🏫 学校紹介 ▲';" style="width:100%;font-size:11px;padding:6px;border:1px solid ${sc.color}40;border-radius:8px;background:${sc.bgColor};color:${sc.color};cursor:pointer;font-family:'Noto Sans JP',sans-serif;font-weight:700;">🏫 学校紹介 ▼</button>
+          <div style="display:none;margin-top:8px;padding:12px;background:var(--surface2);border-radius:8px;font-size:12px;line-height:1.8;color:var(--text);">${sc.intro.replace(/\n/g,'<br>')}</div>` : ''}
         </div>
       </div>`;
     }).join('')
@@ -5111,6 +5131,106 @@ function bnNavPast() {
   }
   document.querySelectorAll('.bn-item').forEach(b => b.classList.remove('active'));
   document.getElementById('bn-past')?.classList.add('active');
+}
+
+// ===== Tips 読み物 =====
+const TIPS_ARTICLES = [
+  {
+    id: 'hensachi',
+    icon: '📊',
+    title: '偏差値ってなに？',
+    color: '#c9a227',
+    bg: '#fff9e6',
+    body: `偏差値は「平均と比べてどのくらいか」を表す数字です。<br><br>
+<b>目安</b><br>
+・偏差値 <b>50</b> ＝ ちょうど平均（受験生全体の真ん中）<br>
+・偏差値 <b>55</b> ＝ 上位30%くらい<br>
+・偏差値 <b>60</b> ＝ 上位16%くらい<br>
+・偏差値 <b>65</b> ＝ 上位7%くらい<br>
+・偏差値 <b>70</b> ＝ 上位2%くらい<br><br>
+<b>注意点</b><br>
+同じテストでも「誰が受けたか」で偏差値は変わります。サピックスの偏差値は受験者層が高いため、四谷大塚・日能研の偏差値より5〜8ポイント低く出るのが一般的です。早稲田中学はサピックス偏差値65、四谷大塚では約70に相当します。`
+  },
+  {
+    id: 'tekisei',
+    icon: '🏛️',
+    title: '適性検査ってなに？',
+    color: '#3a5a7a',
+    bg: '#e8f0fb',
+    body: `都立中高一貫校の入試は「適性検査」という独自の試験形式です。私立中学とはまったく異なります。<br><br>
+<b>私立中の入試</b><br>
+・算数・国語・理科・社会の4科目<br>
+・知識量と解法パターンが重要<br><br>
+<b>適性検査（都立中）</b><br>
+・適性検査Ⅰ（国語的思考）・Ⅱ（算数・理科的思考）・Ⅲ（学校による）<br>
+・「なぜそうなるか説明しなさい」という記述・作文が中心<br>
+・教科の知識より思考力・表現力・問題解決力を問う<br><br>
+私立と都立の併願は対策が大きく異なるため、早めに志望校の方向性を決めておくことが大切です。`
+  },
+  {
+    id: 'schedule',
+    icon: '📅',
+    title: '中学受験のスケジュール',
+    color: '#2d7a3a',
+    bg: '#e8f5e9',
+    body: `<b>小学5年生（今）</b><br>
+塾のカリキュラムで全単元を一通り学ぶ時期。完璧にしなくてよい。<br>苦手な分野を見つけておくことが5年生の最大の仕事。<br><br>
+<b>小学6年生 前半（4〜8月）</b><br>
+総合演習・苦手の徹底克服。夏期講習が山場。<br><br>
+<b>小学6年生 後半（9〜12月）</b><br>
+志望校の過去問スタート。学校ごとの出題傾向に慣れる。<br><br>
+<b>1月（前哨戦）</b><br>
+埼玉・千葉の入試がスタート。本番前の練習になる。<br><br>
+<b>2月（本番）</b><br>
+東京・神奈川の入試。2月1日が多くの学校の第一志望日。<br><br>
+💡 5年生のうちは「基礎を固める」「苦手を把握する」の2点が最優先です。`
+  },
+  {
+    id: 'sapix',
+    icon: '🏫',
+    title: 'サピックスのクラス・テスト制度',
+    color: '#1565c0',
+    bg: '#e3f2fd',
+    body: `<b>クラス制度</b><br>
+アルファ（α）クラスが最上位、以下A〜Gなどのアルファベット順（校舎や時期による）。テスト結果でクラスが上下します。<br><br>
+<b>テストの種類</b><br>
+・<b>組分けテスト</b>：クラスを決めるテスト。直近だけでなく広い範囲から出題されるため本当の実力が出る。<br>
+・<b>マンスリー確認テスト</b>：その月に習った範囲のテスト。クラス変動あり。<br>
+・<b>復習テスト</b>：前回授業の内容確認。クラス変動なし。<br><br>
+<b>スコアの見方のコツ</b><br>
+復習テストで高得点でも組分けで下がる場合は「直前だけ覚えて定着していない」サイン。組分けテストの得点が本当の実力に近いです。`
+  },
+  {
+    id: 'study',
+    icon: '💡',
+    title: '受験勉強を続けるコツ',
+    color: '#6a0dad',
+    bg: '#f0e8fa',
+    body: `<b>毎日少しずつが大原則</b><br>
+週末に5時間やるより、毎日20〜30分の方が定着します。脳は繰り返しで記憶を強化するからです。<br><br>
+<b>苦手から逃げない</b><br>
+「わからないから後回し」は最も危険なパターン。苦手単元こそ先に取り組む勇気を。<br><br>
+<b>間違えた問題は宝物</b><br>
+正解した問題を繰り返すより、間違えた問題を徹底的に理解する方が成績が上がります。<br><br>
+<b>モチベーションの保ち方</b><br>
+志望校に見学に行く、学校のパンフレットを部屋に貼る、目標を「合格」だけでなく「この学校で〇〇をしたい」という具体的なイメージにする。<br><br>
+小さな「できた！」を積み重ねることが長い受験勉強を乗り切る一番の力です。`
+  },
+];
+
+function renderTips() {
+  const el = document.getElementById('tipsContent');
+  if (!el) return;
+  el.innerHTML = TIPS_ARTICLES.map(a => `
+    <div style="margin-bottom:10px;border-radius:12px;overflow:hidden;border:1px solid ${a.color}30;background:var(--surface);">
+      <button onclick="const d=this.nextElementSibling;const open=d.style.display!=='none';d.style.display=open?'none':'block';this.querySelector('.tip-arrow').textContent=open?'▼':'▲';"
+        style="width:100%;display:flex;align-items:center;gap:10px;padding:14px 16px;background:${a.bg};border:none;cursor:pointer;font-family:'Noto Sans JP',sans-serif;text-align:left;">
+        <span style="font-size:22px;">${a.icon}</span>
+        <span style="flex:1;font-size:14px;font-weight:800;color:${a.color};">${a.title}</span>
+        <span class="tip-arrow" style="font-size:12px;color:${a.color};">▼</span>
+      </button>
+      <div style="display:none;padding:14px 16px;font-size:13px;line-height:1.9;color:var(--text);">${a.body}</div>
+    </div>`).join('');
 }
 
 // ===== 写真キャプチャ =====
