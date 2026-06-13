@@ -2928,6 +2928,13 @@ let studyLog = [];    // [{date, count, correct}]
 let totalAnswered = 0;
 let streak = 0;
 let weakUnits = {};   // { '算数::平面図形': true } 弱点単元マーク（保護者設定）
+// テスト結果履歴（サピックスの成績を記録）
+let testResults = [
+  { date: '2026/3/8',  name: '3月組分け',      scores: { total: 51.3, 算数: 49.8, 国語: 45.9, 理科: 60.4, 社会: 51.9 } },
+  { date: '2026/3/25', name: '3月復習',         scores: { total: 57.7, 算数: 59.7, 国語: 58.6, 理科: 53.1, 社会: 53.6 } },
+  { date: '2026/4/27', name: '4月マンスリー',   scores: { total: 51.4, 算数: 45.9, 国語: 55.0, 理科: 52.3, 社会: 53.6 } },
+  { date: '2026/6/7',  name: '志望校診断SO',    scores: { total: 47.6, 算数: 54.2, 国語: 54.6, 理科: 29.8, 社会: 44.3 } },
+];
 let settings = { timer: false, sound: true, effect: true };
 let timerInterval = null;
 let timerSec = 60;
@@ -3264,6 +3271,7 @@ function load() {
       totalAnswered = d.totalAnswered || 0;
       streak = d.streak || 0;
       weakUnits = d.weakUnits || {};
+      if (d.testResults) testResults = d.testResults; // 保存済みがあれば上書き
     }
     const st = localStorage.getItem('juken_settings');
     if (st) settings = { ...settings, ...JSON.parse(st) };
@@ -3288,7 +3296,7 @@ function load() {
 function saveAll() {
   try {
     localStorage.setItem('juken_v2', JSON.stringify({
-      scores, achievements, bookmarks, studyLog, totalAnswered, streak, weakUnits
+      scores, achievements, bookmarks, studyLog, totalAnswered, streak, weakUnits, testResults
     }));
   } catch(e) {}
 }
@@ -3321,6 +3329,91 @@ function savePlayerName() {
   updateHeaderSubtitle();
   showToast('✅ 名前を保存しました！');
   document.getElementById('settingsPanel').classList.remove('open');
+}
+
+// ===== テスト結果グラフ =====
+function renderTestChart() {
+  if (testResults.length === 0) return '<div style="font-size:12px;color:var(--text3);padding:8px;">テスト結果がまだありません</div>';
+
+  const W = 340, H = 200, PL = 32, PR = 10, PT = 14, PB = 40;
+  const cW = W - PL - PR, cH = H - PT - PB;
+  const minY = 25, maxY = 75;
+  const n = testResults.length;
+
+  const toX = i => PL + (n === 1 ? cW / 2 : i * cW / (n - 1));
+  const toY = v => PT + cH - (v - minY) / (maxY - minY) * cH;
+
+  const COLORS = { total: '#333', 算数: '#1a5fb4', 国語: '#5b3ea6', 理科: '#2d7a3a', 社会: '#8a5500' };
+  const LABELS = { total: '4科', 算数: '算', 国語: '国', 理科: '理', 社会: '社' };
+
+  // グリッド線（50の線を太く）
+  const gridLines = [35, 40, 45, 50, 55, 60, 65, 70].map(v => {
+    const y = toY(v);
+    const bold = v === 50;
+    return `<line x1="${PL}" y1="${y}" x2="${W-PR}" y2="${y}" stroke="${bold ? '#bbb' : '#eee'}" stroke-width="${bold ? 1.5 : 1}"/>
+            <text x="${PL - 4}" y="${y + 4}" text-anchor="end" font-size="8" fill="#aaa">${v}</text>`;
+  }).join('');
+
+  // 各科目のライン
+  const lines = Object.entries(COLORS).map(([subj, color]) => {
+    const pts = testResults
+      .map((r, i) => r.scores[subj] != null ? `${toX(i)},${toY(r.scores[subj])}` : null)
+      .filter(Boolean);
+    if (pts.length < 2) return '';
+
+    // ライン
+    const path = `<polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="${subj === 'total' ? 2.5 : 1.5}" stroke-dasharray="${subj === 'total' ? 'none' : 'none'}" opacity="${subj === 'total' ? 1 : 0.75}"/>`;
+
+    // 最新値ラベル
+    const lastR = [...testResults].reverse().find(r => r.scores[subj] != null);
+    const lastIdx = testResults.lastIndexOf(lastR);
+    const lastVal = lastR.scores[subj];
+    const lx = toX(lastIdx) + 3, ly = toY(lastVal) + 4;
+    const label = `<text x="${lx}" y="${ly}" font-size="8" fill="${color}" font-weight="700">${LABELS[subj]}</text>`;
+
+    // ドット
+    const dots = testResults.map((r, i) => {
+      const v = r.scores[subj];
+      if (v == null) return '';
+      const isLow = subj !== 'total' && v < 40;
+      return `<circle cx="${toX(i)}" cy="${toY(v)}" r="${isLow ? 5 : 3}" fill="${isLow ? '#e00' : color}" opacity="${isLow ? 1 : 0.9}"/>
+              ${subj !== 'total' && (i === n-1 || isLow) ? `<text x="${toX(i)}" y="${toY(v) - 7}" text-anchor="middle" font-size="9" fill="${isLow ? '#c0392b' : color}" font-weight="${isLow ? '800' : '600'}">${v}</text>` : ''}`;
+    }).join('');
+
+    return path + dots + label;
+  }).join('');
+
+  // X軸ラベル
+  const xLabels = testResults.map((r, i) =>
+    `<text x="${toX(i)}" y="${H - 4}" text-anchor="middle" font-size="8" fill="#888">${r.name.slice(0, 6)}</text>`
+  ).join('');
+
+  return `<div style="overflow-x:auto;">
+    <svg viewBox="0 0 ${W} ${H}" width="100%" style="font-family:'DM Mono',monospace;display:block;">
+      ${gridLines}
+      ${lines}
+      ${xLabels}
+    </svg>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;font-size:10px;">
+    ${Object.entries(COLORS).map(([s,c]) => `<span style="display:flex;align-items:center;gap:3px;"><span style="width:16px;height:3px;background:${c};display:inline-block;border-radius:2px;"></span>${s === 'total' ? '4科目計' : s}</span>`).join('')}
+  </div>`;
+}
+
+function addTestResult() {
+  const name = document.getElementById('tr_name').value.trim();
+  if (!name) { showToast('テスト名を入力してください'); return; }
+  const scores = {};
+  ['total','算数','国語','理科','社会'].forEach(s => {
+    const v = parseFloat(document.getElementById('tr_' + s).value);
+    if (!isNaN(v)) scores[s] = v;
+  });
+  if (Object.keys(scores).length === 0) { showToast('偏差値を1つ以上入力してください'); return; }
+  const today = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '/');
+  testResults.push({ date: today, name, scores });
+  saveAll();
+  showToast('✅ テスト結果を保存しました');
+  renderParent();
 }
 
 // ===== 弱点マーク =====
@@ -5057,6 +5150,26 @@ function renderParent() {
           <div class="stat-label">学習時間(分)</div>
         </div>
       </div>
+    </div>
+    <div class="parent-section">
+      <h3>📈 偏差値の推移</h3>
+      ${renderTestChart()}
+      <details style="margin-top:14px;">
+        <summary style="font-size:12px;color:var(--blue);cursor:pointer;font-weight:700;">＋ テスト結果を追加</summary>
+        <div style="margin-top:10px;background:var(--surface2);border-radius:10px;padding:12px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;">テスト名と偏差値を入力</div>
+          <input id="tr_name" type="text" placeholder="例：7月マンスリー" style="width:100%;box-sizing:border-box;padding:8px;font-size:13px;font-family:'Noto Sans JP',sans-serif;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);margin-bottom:8px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
+            ${['total','算数','国語','理科','社会'].map(s => `
+            <div>
+              <div style="font-size:10px;color:var(--text2);margin-bottom:2px;">${s === 'total' ? '4科目計' : s}</div>
+              <input id="tr_${s}" type="number" min="20" max="80" step="0.1" placeholder="--"
+                style="width:100%;box-sizing:border-box;padding:6px 8px;font-size:13px;font-family:'DM Mono',monospace;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);">
+            </div>`).join('')}
+          </div>
+          <button onclick="addTestResult()" style="width:100%;padding:8px;background:var(--text);color:#fff;border:none;border-radius:8px;font-size:13px;font-family:'Noto Sans JP',sans-serif;cursor:pointer;font-weight:700;">保存</button>
+        </div>
+      </details>
     </div>
     ${Object.keys(weakUnits).length > 0 ? `
     <div class="parent-section" style="border-left:3px solid #c0392b;">
