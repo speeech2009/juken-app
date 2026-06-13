@@ -2927,6 +2927,7 @@ let bookmarks = [];
 let studyLog = [];    // [{date, count, correct}]
 let totalAnswered = 0;
 let streak = 0;
+let weakUnits = {};   // { '算数::平面図形': true } 弱点単元マーク（保護者設定）
 let settings = { timer: false, sound: true, effect: true };
 let timerInterval = null;
 let timerSec = 60;
@@ -3262,6 +3263,7 @@ function load() {
       studyLog = d.studyLog || [];
       totalAnswered = d.totalAnswered || 0;
       streak = d.streak || 0;
+      weakUnits = d.weakUnits || {};
     }
     const st = localStorage.getItem('juken_settings');
     if (st) settings = { ...settings, ...JSON.parse(st) };
@@ -3286,7 +3288,7 @@ function load() {
 function saveAll() {
   try {
     localStorage.setItem('juken_v2', JSON.stringify({
-      scores, achievements, bookmarks, studyLog, totalAnswered, streak
+      scores, achievements, bookmarks, studyLog, totalAnswered, streak, weakUnits
     }));
   } catch(e) {}
 }
@@ -3319,6 +3321,20 @@ function savePlayerName() {
   updateHeaderSubtitle();
   showToast('✅ 名前を保存しました！');
   document.getElementById('settingsPanel').classList.remove('open');
+}
+
+// ===== 弱点マーク =====
+function toggleWeakUnit(subj, unit) {
+  const key = `${subj}::${unit}`;
+  if (weakUnits[key]) {
+    delete weakUnits[key];
+    showToast('🚨 弱点マークを外しました');
+  } else {
+    weakUnits[key] = true;
+    showToast('🚨 弱点マークをつけました！重点的に練習しよう');
+  }
+  saveAll();
+  renderUnitList(); // 即反映
 }
 
 // ===== 学校メモ =====
@@ -4082,17 +4098,32 @@ function renderUnitList() {
     })() : '';
     const memoTip = tend ? `title="${esc(tend.memo)}"` : '';
 
-    return `<button class="unit-item" onclick="selectUnit('${esc(u)}')" ${memoTip}>
-      <div style="flex:1;min-width:0;">
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-          <span class="u-name">${u}</span>
-          ${freqBadge}
+    // 弱点バッジ
+    const wKey = `${state.subj}::${u}`;
+    const isWeak = !!weakUnits[wKey];
+    const weakBadge = isWeak
+      ? `<span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;background:#fff0f0;color:#c0392b;border:1px solid #e08080;white-space:nowrap;">🚨 弱点</span>`
+      : '';
+
+    return `<div style="display:flex;align-items:stretch;border-bottom:1px solid var(--border);${isWeak ? 'border-left:3px solid #c0392b;' : ''}">
+      <button class="unit-item" onclick="selectUnit('${esc(u)}')" ${memoTip} style="flex:1;border-bottom:none;${isWeak ? 'background:#fff8f8;' : ''}">
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <span class="u-name">${u}</span>
+            ${weakBadge}
+            ${freqBadge}
+          </div>
+          ${tend ? `<div style="font-size:10px;color:var(--text3);margin-top:2px;line-height:1.4;">${esc(tend.memo)}</div>` : ''}
+          <div class="level-dots" style="margin-top:4px;">${dots}</div>
         </div>
-        ${tend ? `<div style="font-size:10px;color:var(--text3);margin-top:2px;line-height:1.4;">${esc(tend.memo)}</div>` : ''}
-        <div class="level-dots" style="margin-top:4px;">${dots}</div>
-      </div>
-      <div class="u-meta" style="flex-shrink:0;">${badge}</div>
-    </button>`;
+        <div class="u-meta" style="flex-shrink:0;">${badge}</div>
+      </button>
+      <button onclick="event.stopPropagation();toggleWeakUnit('${state.subj}','${esc(u)}')"
+        title="弱点マークをつける／外す"
+        style="padding:0 10px;background:${isWeak ? '#fff0f0' : 'transparent'};border:none;border-left:1px solid var(--border);cursor:pointer;font-size:16px;color:${isWeak ? '#c0392b' : '#ccc'};">
+        🚨
+      </button>
+    </div>`;
   }).join('');
 }
 
@@ -5027,9 +5058,26 @@ function renderParent() {
         </div>
       </div>
     </div>
-    ${weakUnits.length > 0 ? `
+    ${Object.keys(weakUnits).length > 0 ? `
+    <div class="parent-section" style="border-left:3px solid #c0392b;">
+      <h3>🚨 弱点マーク中の単元</h3>
+      <div style="font-size:11px;color:var(--text2);margin:-4px 0 10px;">単元リストの右端の🚨をタップしてマーク・解除できます</div>
+      <div class="weak-list">
+        ${Object.keys(weakUnits).map(k => {
+          const [subj, unit] = k.split('::');
+          return `<div class="weak-item" style="border-left:none;">
+            <div>
+              <span class="badge ${SUBJ_BADGE[subj] || ''}" style="margin-right:6px;">${subj}</span>
+              <span class="wi-name">${unit}</span>
+            </div>
+            <button onclick="toggleWeakUnit('${esc(subj)}','${esc(unit)}')" style="font-size:11px;padding:2px 8px;border:1px solid #e08080;border-radius:4px;background:#fff0f0;color:#c0392b;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">外す</button>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>` : ''}
+    ${allKeys.filter(k => scores[k].total >= 3 && scores[k].correct / scores[k].total < 0.5).length > 0 ? `
     <div class="parent-section">
-      <h3>⚠️ 苦手な単元（重点的に復習しましょう）</h3>
+      <h3>⚠️ 正解率が低い単元</h3>
       <div class="weak-list">
         ${weakUnits.map(k => {
           const parts = k.split('::');
