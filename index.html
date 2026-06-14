@@ -1299,6 +1299,17 @@ input, textarea, select {
       </div>
       <button class="btn-secondary" style="width:auto;padding:6px 12px;font-size:11px;" onclick="resetData()">リセット</button>
     </div>
+    <!-- 家族コード（デバイス間同期） -->
+    <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px;">
+      <div class="setting-label" style="margin-bottom:4px;">📱 家族コード（デバイス間同期）</div>
+      <div style="font-size:22px;font-weight:900;letter-spacing:6px;color:var(--primary);padding:6px 0;" id="familyCodeDisplay">------</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:8px;">このコードをiPhoneとiPadで共有するとデータが同期されます</div>
+      <div style="display:flex;gap:6px;">
+        <input id="familyCodeInput" type="text" maxlength="8" placeholder="他デバイスのコードを入力"
+          style="flex:1;padding:7px 10px;font-size:13px;font-family:'DM Mono',monospace;letter-spacing:3px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);outline:none;text-transform:uppercase;" />
+        <button onclick="connectFamilyCode()" style="padding:7px 12px;font-size:12px;font-family:'Noto Sans JP',sans-serif;background:var(--primary);color:#fff;border:none;border-radius:8px;cursor:pointer;">接続</button>
+      </div>
+    </div>
     <!-- 名前設定 -->
     <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px;">
       <div class="setting-label" style="margin-bottom:6px;">👤 名前（称号に表示されます）</div>
@@ -1512,7 +1523,101 @@ input, textarea, select {
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
 <script>
+// ===== Firebase 初期化 =====
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCxgIzMWf1IAB2aUpVfY_gGuGAT3JS5eUc",
+  authDomain: "juken-app-b1d3c.firebaseapp.com",
+  projectId: "juken-app-b1d3c",
+  storageBucket: "juken-app-b1d3c.firebasestorage.app",
+  messagingSenderId: "225947352503",
+  appId: "1:225947352503:web:a2c8abadca5b51233a7c32"
+};
+let db = null;
+let familyId = '';
+
+function initFirebase() {
+  try {
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.firestore();
+  } catch(e) { console.warn('Firebase init error:', e); }
+}
+
+function getFamilyId() {
+  if (familyId) return familyId;
+  let id = localStorage.getItem('juken_family_id');
+  if (!id) {
+    id = Math.random().toString(36).substring(2, 8).toUpperCase();
+    localStorage.setItem('juken_family_id', id);
+  }
+  familyId = id;
+  return id;
+}
+
+async function saveToCloud() {
+  if (!db) return;
+  try {
+    const fid = getFamilyId();
+    await db.collection('families').doc(fid).set({
+      scores, achievements, bookmarks, studyLog, totalAnswered, streak,
+      weakUnits, testResults,
+      apiKey: getApiKey(),
+      playerName: localStorage.getItem('juken_playername') || '',
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch(e) { console.warn('Cloud save error:', e); }
+}
+
+async function loadFromCloud(targetId) {
+  if (!db) return false;
+  try {
+    const fid = targetId || getFamilyId();
+    const doc = await db.collection('families').doc(fid).get();
+    if (!doc.exists) return false;
+    const d = doc.data();
+    if (d.scores)        scores        = d.scores;
+    if (d.achievements)  achievements  = d.achievements;
+    if (d.bookmarks)     bookmarks     = d.bookmarks;
+    if (d.studyLog)      studyLog      = d.studyLog;
+    if (d.totalAnswered != null) totalAnswered = d.totalAnswered;
+    if (d.streak != null)        streak        = d.streak;
+    if (d.weakUnits)     weakUnits     = d.weakUnits;
+    if (d.testResults)   testResults   = d.testResults;
+    if (d.apiKey) {
+      localStorage.setItem('juken_apikey', d.apiKey);
+      const inp = document.getElementById('apikeyInput');
+      const sts = document.getElementById('apikeyStatus');
+      if (inp) inp.value = d.apiKey;
+      if (sts) { sts.textContent = '✅ APIキー設定済み（同期済み）'; sts.style.color = '#2d7a3a'; }
+    }
+    if (d.playerName) {
+      localStorage.setItem('juken_playername', d.playerName);
+      const ni = document.getElementById('playerNameInput');
+      if (ni) ni.value = d.playerName;
+    }
+    familyId = fid;
+    localStorage.setItem('juken_family_id', fid);
+    return true;
+  } catch(e) { console.warn('Cloud load error:', e); return false; }
+}
+
+async function connectFamilyCode() {
+  const inp = document.getElementById('familyCodeInput');
+  const code = (inp?.value || '').trim().toUpperCase();
+  if (code.length < 4) { showToast('4文字以上のコードを入力してください'); return; }
+  const loaded = await loadFromCloud(code);
+  saveAll(); // ローカルにも保存
+  updateStreakBadge();
+  updateHeaderSubtitle();
+  renderSchoolGrid();
+  document.getElementById('familyCodeDisplay').textContent = code;
+  showToast(loaded ? '✅ データを同期しました！' : '✅ このコードで同期を開始します');
+  document.getElementById('settingsPanel').classList.remove('open');
+}
+
 // ===== データ定義 =====
 const UNITS = {
   算数: [
@@ -3430,7 +3535,19 @@ function load() {
     if (savedPin) document.getElementById('parentPinStatus').textContent = '✅ PIN設定済み（変更するには新しい4桁を入力）';
   } catch(e) {}
   updateStreakBadge();
-  updateHeaderSubtitle(); // 名前・称号をヘッダーに表示
+  updateHeaderSubtitle();
+  // クラウドから最新データを取得（ローカルより新しければ上書き）
+  initFirebase();
+  loadFromCloud().then(loaded => {
+    if (loaded) {
+      saveAll();
+      updateStreakBadge();
+      updateHeaderSubtitle();
+    }
+    // 家族コードを表示
+    const el = document.getElementById('familyCodeDisplay');
+    if (el) el.textContent = getFamilyId();
+  });
 }
 
 function saveAll() {
@@ -3438,6 +3555,7 @@ function saveAll() {
     localStorage.setItem('juken_v2', JSON.stringify({
       scores, achievements, bookmarks, studyLog, totalAnswered, streak, weakUnits, testResults
     }));
+    saveToCloud(); // 非同期でクラウドにも保存（エラーでも続行）
   } catch(e) {}
 }
 
