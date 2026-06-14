@@ -775,6 +775,101 @@ body {
 .log-item .li-date { font-weight: 500; color: var(--text); }
 .log-item .li-count { font-family: 'DM Mono', monospace; font-weight: 700; color: var(--blue); }
 
+/* ===== サピックス分析パネル ===== */
+.sapix-banner {
+  background: linear-gradient(135deg, #1a1814 0%, #2c2820 100%);
+  color: #fff; padding: 14px 16px; border-radius: var(--radius); margin-bottom: 12px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.sapix-banner-left { flex: 1; }
+.sapix-banner-label { font-size: 10px; font-weight: 700; opacity: 0.55; letter-spacing: 0.08em; margin-bottom: 3px; }
+.sapix-banner-name { font-size: 14px; font-weight: 700; }
+.sapix-banner-date { font-size: 11px; opacity: 0.45; margin-top: 2px; }
+.sapix-banner-score { text-align: right; }
+.sapix-banner-hensachi { font-size: 28px; font-weight: 900; font-family: 'DM Mono', monospace; line-height: 1; }
+.sapix-banner-hensachi.drop { color: #ff8787; }
+.sapix-banner-hensachi.ok { color: #ffd43b; }
+.sapix-banner-hensachi.good { color: #69db7c; }
+.sapix-banner-sub { font-size: 10px; opacity: 0.5; margin-top: 2px; }
+
+.sapix-trend-wrap { overflow: hidden; }
+.sapix-trend-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--border); }
+.sapix-trend-row:last-child { border-bottom: none; }
+.sapix-trend-subj { width: 32px; font-size: 10px; font-weight: 700; color: var(--text2); flex-shrink: 0; }
+.sapix-trend-bars { display: flex; gap: 3px; flex: 1; }
+.sapix-trend-dot {
+  flex: 1; height: 22px; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700; font-family: 'DM Mono', monospace; color: #fff;
+}
+.sapix-trend-dot.lv-bad { background: #e03131; }
+.sapix-trend-dot.lv-low { background: #f08c00; }
+.sapix-trend-dot.lv-mid { background: #66a3c8; }
+.sapix-trend-dot.lv-good { background: #2b8a3e; }
+.sapix-trend-dot.lv-great { background: #1864ab; }
+
+.sapix-subj-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.sapix-subj-card {
+  border-radius: var(--radius-sm); padding: 10px 12px;
+  display: flex; align-items: center; gap: 10px;
+}
+.sapix-subj-card.good { background: #d3f9d8; }
+.sapix-subj-card.ok { background: var(--surface2); }
+.sapix-subj-card.bad { background: #ffe3e3; }
+.sapix-subj-card.crisis { background: #ffa8a8; }
+.sapix-subj-icon { font-size: 20px; line-height: 1; }
+.sapix-subj-body { flex: 1; min-width: 0; }
+.sapix-subj-name { font-size: 11px; color: var(--text2); font-weight: 500; }
+.sapix-subj-val { font-size: 18px; font-weight: 900; font-family: 'DM Mono', monospace; color: var(--text); }
+.sapix-subj-trend { font-size: 10px; color: var(--text3); }
+
+.sapix-strength-list { display: flex; flex-direction: column; gap: 6px; }
+.sapix-strength-item {
+  display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px;
+  background: #d3f9d8; border-radius: var(--radius-sm); border-left: 3px solid #2b8a3e;
+}
+.sapix-str-icon { font-size: 20px; line-height: 1; margin-top: 1px; flex-shrink: 0; }
+.sapix-str-body { flex: 1; }
+.sapix-str-name { font-size: 12px; font-weight: 700; color: var(--text); }
+.sapix-str-tag { display: inline-block; font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 10px; background: #2b8a3e; color: #fff; margin-right: 4px; }
+.sapix-str-desc { font-size: 11px; color: #2b5a2e; margin-top: 3px; line-height: 1.55; }
+
+.sapix-weak-list { display: flex; flex-direction: column; gap: 6px; }
+.sapix-weak-item {
+  display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px;
+  border-radius: var(--radius-sm); border-left: 3px solid;
+}
+.sapix-weak-item.sev3 { background: #ffe3e3; border-color: #c92a2a; }
+.sapix-weak-item.sev2 { background: #fff3bf; border-color: #e67700; }
+.sapix-weak-item.sev1 { background: var(--surface2); border-color: var(--border2); }
+.sapix-wk-icon { font-size: 20px; line-height: 1; margin-top: 1px; flex-shrink: 0; }
+.sapix-wk-body { flex: 1; }
+.sapix-wk-name { font-size: 12px; font-weight: 700; color: var(--text); }
+.sapix-wk-badge { display: inline-block; font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 10px; margin-right: 4px; }
+.sapix-wk-badge.sev3 { background: #c92a2a; color: #fff; }
+.sapix-wk-badge.sev2 { background: #e67700; color: #fff; }
+.sapix-wk-badge.sev1 { background: var(--border2); color: var(--text2); }
+.sapix-wk-desc { font-size: 11px; color: var(--text2); margin-top: 3px; line-height: 1.55; }
+
+.sapix-school-list { display: flex; flex-direction: column; gap: 6px; }
+.sapix-school-item { padding: 10px 12px; background: var(--surface2); border-radius: var(--radius-sm); }
+.sapix-school-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.sapix-school-name { font-size: 12px; font-weight: 700; color: var(--text); }
+.sapix-school-pct { font-size: 13px; font-weight: 900; font-family: 'DM Mono', monospace; }
+.sapix-school-bar-bg { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.sapix-school-bar { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+.sapix-school-note { font-size: 10px; color: var(--text3); margin-top: 4px; }
+
+.sapix-todo-list { display: flex; flex-direction: column; gap: 6px; }
+.sapix-todo-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; background: var(--surface2); border-radius: var(--radius-sm); }
+.sapix-todo-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+.sapix-todo-dot.red { background: #c92a2a; }
+.sapix-todo-dot.orange { background: #e67700; }
+.sapix-todo-dot.yellow { background: #f59f00; }
+.sapix-todo-body { flex: 1; }
+.sapix-todo-name { font-size: 12px; font-weight: 700; color: var(--text); }
+.sapix-todo-detail { font-size: 11px; color: var(--text2); margin-top: 2px; line-height: 1.5; }
+
 /* ===== APIキー ===== */
 .apikey-section {
   padding: 14px 16px;
@@ -1440,6 +1535,51 @@ const UNITS = {
     '日本地理','世界地理','歴史（原始〜江戸）','歴史（明治〜現代）',
     '公民・政治','地図・グラフ読み取り','時事問題',
     '産業・農業・工業','日本の気候','憲法・三権分立'
+  ]
+};
+
+// ===== サピックステスト分析データ =====
+const SAPIX_ANALYSIS = {
+  student: '高橋 陽大',
+  school: '大井町校',
+  updatedAt: '2026年6月13日',
+  tests: [
+    { name: '3月組分', date: '2026/3/8',  total: 51.3, math: 49.8, jp: 45.9, sci: 60.4, soc: 51.9 },
+    { name: '3月復習', date: '2026/3/25', total: 57.7, math: 59.7, jp: 58.6, sci: 53.1, soc: 53.6 },
+    { name: '4月M',   date: '2026/4/27', total: 51.4, math: 45.9, jp: 55.0, sci: 52.3, soc: 53.6 },
+    { name: '6月OP',  date: '2026/6/7',  total: 47.6, math: 54.2, jp: 54.6, sci: 29.8, soc: 44.3 },
+  ],
+  schoolProbs: [
+    { name: '早稲田中学校', prob: 20, color: '#c0392b', note: '合格まであと+42点' },
+    { name: '本郷中学校',   prob: 40, color: '#2d7a3a', note: '合格まであと+5点（射程内）' },
+    { name: '攻玉社中学校', prob: 60, color: '#1a5fb4', note: '合格可能性50%を+20点超（現安全圏）' },
+    { name: '青稜中学校',   prob: 80, color: '#6d4c41', note: '合格可能性50%を+57点超（確実圏）' },
+  ],
+  strengths: [
+    { subj: '算数', icon: '✏️', name: '計算・和と差・文章題', desc: '計算・和と差は満点経験あり。文章題も複数テストで平均を大きく超えている。この子の最大の武器。' },
+    { subj: '算数', icon: '🔍', name: '規則性・調べる問題', desc: 'パターンを見つける問題が得意。オープンで平均の1.8倍（19/34点）を記録。' },
+    { subj: '国語', icon: '📖', name: '論説文・説明文の読解', desc: '論説文はコンスタントに平均の1.3〜1.5倍。論理的な文章を読む力が高い。' },
+    { subj: '国語', icon: '✍️', name: '漢字・語彙（好調時）', desc: '3月復習テストでは漢字・語彙ともに90%。安定すれば国語の得点源になる。' },
+    { subj: '理科', icon: '⚗️', name: '水溶液・化学・物質の性質', desc: '物質の性質92%、水溶液86%。化学系は安定して平均を大きく超える得意分野。' },
+    { subj: '理科', icon: '🌿', name: '植物のはたらき', desc: '4月マンスリーで満点（26/26点）。生物・植物系は理解が深い。' },
+    { subj: '社会', icon: '🗾', name: '日本地理（関東・近畿）', desc: '関東地方で28/32点（平均の1.2倍）。地図の読み取りや地域の特色が得意。' },
+  ],
+  weaknesses: [
+    { subj: '理科', icon: '🌧️', sev: 3, name: '天気・気象', desc: 'オープンで3/21点（平均の27%）。偏差値29.8の主因。雲・前線・降水量が未定着。今すぐ着手が必要。' },
+    { subj: '算数', icon: '📐', sev: 3, name: '平面図形（応用）・立体図形', desc: 'オープンで0点。基本図形は解けるが応用・変形で全滅。3テスト連続の弱点。' },
+    { subj: '算数', icon: '📈', sev: 3, name: '速さ・グラフ・変化問題', desc: '深さの変化で0点、速さも失点続き。「変化・移動・時間」を絡めた問題が未定着。' },
+    { subj: '理科', icon: '📋', sev: 2, name: '小問集合（知識の幅）', desc: '全4テストで平均以下。特定分野だけでなく、幅広い知識に穴が多い。' },
+    { subj: '社会', icon: '🏭', sev: 2, name: '産業・農業・工業', desc: '3回連続出題で毎回取りこぼし。工業地帯の分布・特徴が頭に入っていない。' },
+    { subj: '理科', icon: '🕯️', sev: 2, name: 'ものの燃焼', desc: '4月マンスリーで11/26点（平均以下）。酸素・二酸化炭素の性質と燃焼の仕組みを要復習。' },
+    { subj: '国語', icon: '📚', sev: 1, name: '物語文（高難度）', desc: '難度が上がると物語文で失点。心情読み取りと記述力に課題。論説文より先に安定させたい。' },
+    { subj: '国語', icon: '✍️', sev: 1, name: '漢字・語彙（ムラあり）', desc: '4テスト中2回で平均以下。得意なはずなのに好不調の振れ幅が大きい。継続的な練習が必要。' },
+  ],
+  weeklyPlan: [
+    { dot: 'red',    name: '理科「天気・気象」Lv.1から', detail: '最優先。月・水・金の毎回30分。今週中に基礎を覚える。' },
+    { dot: 'red',    name: '算数「平面図形」Lv.1から',  detail: '火・木の30分。基本図形の面積・周の長さから丁寧に。' },
+    { dot: 'orange', name: '算数「速さと比」Lv.1から',  detail: '土曜日30分。5年後半の最重要単元。早めに慣れること。' },
+    { dot: 'orange', name: '社会「産業・農業・工業」',   detail: '日曜日20分。工業地帯の地図と産業の特色を一緒に覚える。' },
+    { dot: 'yellow', name: '国語「漢字の読み書き」',     detail: 'すきま時間5分。サボると落ちるので毎日少しずつ。' },
   ]
 };
 
@@ -5098,6 +5238,177 @@ function renderScores() {
 }
 
 // ===== 保護者ダッシュボード =====
+function renderSapixAnalysis() {
+  const d = SAPIX_ANALYSIS;
+  const latest = d.tests[d.tests.length - 1];
+  const scoreClass = latest.total >= 57 ? 'good' : latest.total >= 52 ? 'ok' : 'drop';
+
+  function hClass(v) {
+    if (v >= 58) return 'lv-great';
+    if (v >= 54) return 'lv-good';
+    if (v >= 50) return 'lv-mid';
+    if (v >= 40) return 'lv-low';
+    return 'lv-bad';
+  }
+
+  const trendRows = [
+    { label: '4科計', key: 'total' },
+    { label: '算数',  key: 'math'  },
+    { label: '国語',  key: 'jp'    },
+    { label: '理科',  key: 'sci'   },
+    { label: '社会',  key: 'soc'   },
+  ];
+
+  const trendHtml = trendRows.map(r => `
+    <div class="sapix-trend-row">
+      <div class="sapix-trend-subj">${r.label}</div>
+      <div class="sapix-trend-bars">
+        ${d.tests.map(t => {
+          const v = t[r.key];
+          return `<div class="sapix-trend-dot ${hClass(v)}" title="${t.name}: ${v}">${v}</div>`;
+        }).join('')}
+      </div>
+    </div>`).join('');
+
+  const subjCards = [
+    { label: '算数', val: latest.math,  icon: '🔢' },
+    { label: '国語', val: latest.jp,    icon: '📖' },
+    { label: '理科', val: latest.sci,   icon: '🔬' },
+    { label: '社会', val: latest.soc,   icon: '🌏' },
+  ].map(c => {
+    const cls = c.val >= 58 ? 'good' : c.val >= 50 ? 'ok' : c.val >= 40 ? 'bad' : 'crisis';
+    const prev = d.tests[d.tests.length - 2];
+    const prevVal = prev ? prev[c.label === '算数' ? 'math' : c.label === '国語' ? 'jp' : c.label === '理科' ? 'sci' : 'soc'] : null;
+    const diff = prevVal ? (c.val - prevVal).toFixed(1) : null;
+    const diffStr = diff ? (diff > 0 ? `▲${diff}` : `▼${Math.abs(diff)}`) : '';
+    const diffColor = diff > 0 ? 'color:#2b8a3e' : 'color:#c92a2a';
+    return `<div class="sapix-subj-card ${cls}">
+      <div class="sapix-subj-icon">${c.icon}</div>
+      <div class="sapix-subj-body">
+        <div class="sapix-subj-name">${c.label}</div>
+        <div class="sapix-subj-val">${c.val}</div>
+        ${diff ? `<div class="sapix-subj-trend" style="${diffColor}">${diffStr}（前回比）</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  const strengthHtml = d.strengths.map(s => `
+    <div class="sapix-strength-item">
+      <div class="sapix-str-icon">${s.icon}</div>
+      <div class="sapix-str-body">
+        <div class="sapix-str-name">
+          <span class="sapix-str-tag">${s.subj}</span>${s.name}
+        </div>
+        <div class="sapix-str-desc">${s.desc}</div>
+      </div>
+    </div>`).join('');
+
+  const sevLabel = { 3: '今すぐ対策', 2: '要注意', 1: '改善したい' };
+  const weakHtml = d.weaknesses.map(w => `
+    <div class="sapix-weak-item sev${w.sev}">
+      <div class="sapix-wk-icon">${w.icon}</div>
+      <div class="sapix-wk-body">
+        <div class="sapix-wk-name">
+          <span class="sapix-wk-badge sev${w.sev}">${sevLabel[w.sev]}</span>${w.name}
+          <span style="font-size:10px;color:var(--text2);font-weight:500;">（${w.subj}）</span>
+        </div>
+        <div class="sapix-wk-desc">${w.desc}</div>
+      </div>
+    </div>`).join('');
+
+  const probHtml = d.schoolProbs.map(s => {
+    const barColor = s.prob >= 80 ? '#2b8a3e' : s.prob >= 60 ? '#1a5fb4' : s.prob >= 40 ? '#e67700' : '#c92a2a';
+    const pctColor = s.prob >= 80 ? '#2b8a3e' : s.prob >= 60 ? '#1a5fb4' : s.prob >= 40 ? '#e67700' : '#c92a2a';
+    return `<div class="sapix-school-item">
+      <div class="sapix-school-top">
+        <div class="sapix-school-name">${s.name}</div>
+        <div class="sapix-school-pct" style="color:${pctColor}">${s.prob}%</div>
+      </div>
+      <div class="sapix-school-bar-bg">
+        <div class="sapix-school-bar" style="width:${s.prob}%;background:${barColor};"></div>
+      </div>
+      <div class="sapix-school-note">${s.note}</div>
+    </div>`;
+  }).join('');
+
+  const todoHtml = d.weeklyPlan.map(t => `
+    <div class="sapix-todo-item">
+      <div class="sapix-todo-dot ${t.dot}"></div>
+      <div class="sapix-todo-body">
+        <div class="sapix-todo-name">${t.name}</div>
+        <div class="sapix-todo-detail">${t.detail}</div>
+      </div>
+    </div>`).join('');
+
+  return `
+    <!-- バナー -->
+    <div class="parent-section" style="padding-bottom:8px;">
+      <div class="sapix-banner">
+        <div class="sapix-banner-left">
+          <div class="sapix-banner-label">SAPIX 最新テスト結果</div>
+          <div class="sapix-banner-name">${latest.name}（${latest.date}）</div>
+          <div class="sapix-banner-date">更新日：${d.updatedAt}</div>
+        </div>
+        <div class="sapix-banner-score">
+          <div class="sapix-banner-hensachi ${scoreClass}">${latest.total}</div>
+          <div class="sapix-banner-sub">4科目計 偏差値</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 偏差値推移 -->
+    <div class="parent-section">
+      <h3>📊 偏差値の推移（全4テスト）</h3>
+      <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+        ${d.tests.map(t => `<span style="font-size:10px;padding:2px 8px;background:var(--surface2);border-radius:10px;color:var(--text2);">${t.name}</span>`).join('')}
+      </div>
+      <div class="sapix-trend-wrap">${trendHtml}</div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;font-size:10px;color:var(--text3);">
+        <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#1864ab;vertical-align:middle;margin-right:3px;"></span>偏差値60+</span>
+        <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#2b8a3e;vertical-align:middle;margin-right:3px;"></span>55〜59</span>
+        <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#66a3c8;vertical-align:middle;margin-right:3px;"></span>50〜54</span>
+        <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#f08c00;vertical-align:middle;margin-right:3px;"></span>40〜49</span>
+        <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#e03131;vertical-align:middle;margin-right:3px;"></span>39以下</span>
+      </div>
+    </div>
+
+    <!-- 最新テスト教科別 -->
+    <div class="parent-section">
+      <h3>📝 最新テスト 教科別偏差値</h3>
+      <div class="sapix-subj-grid">${subjCards}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:8px;">⚠️ 理科の偏差値29.8は全体を引き下げる最大の要因です</div>
+    </div>
+
+    <!-- 志望校合格可能性 -->
+    <div class="parent-section">
+      <h3>🏫 志望校 合格可能性（第1回サピックスオープン）</h3>
+      <div class="sapix-school-list">${probHtml}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:8px;">合格可能性50%以上が「合格圏」の目安</div>
+    </div>
+
+    <!-- 得意分野 -->
+    <div class="parent-section">
+      <h3>✅ 得意分野（強みポイント）</h3>
+      <div style="font-size:11px;color:var(--text2);margin:-4px 0 10px;">複数テストで安定して平均を上回った分野</div>
+      <div class="sapix-strength-list">${strengthHtml}</div>
+    </div>
+
+    <!-- ネガティブ分野 -->
+    <div class="parent-section">
+      <h3>🔴 要注意・弱点ポイント</h3>
+      <div style="font-size:11px;color:var(--text2);margin:-4px 0 10px;">複数テストで平均以下・または0点が出た分野</div>
+      <div class="sapix-weak-list">${weakHtml}</div>
+    </div>
+
+    <!-- 今週の学習プラン -->
+    <div class="parent-section" style="background:#fffde7;border-left:3px solid #f59f00;border-bottom:none;">
+      <h3>📅 今週の学習プラン（アプリ活用）</h3>
+      <div class="sapix-todo-list">${todoHtml}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:10px;">🔴 最優先　🟠 高優先　🟡 並行してやる</div>
+    </div>
+  `;
+}
+
 function renderParent() {
   const allKeys = Object.keys(scores);
   let totalCorrect = 0, totalQ = 0;
@@ -5116,9 +5427,9 @@ function renderParent() {
   const studyTime = Math.round((Date.now() - sessionStart) / 60000);
 
   const el = document.getElementById('parentContent');
-  el.innerHTML = `
-    <div class="parent-section">
-      <h3>📊 総合成績</h3>
+  el.innerHTML = renderSapixAnalysis() + `
+    <div class="parent-section" style="border-top:3px solid var(--border2);margin-top:4px;">
+      <h3>📊 アプリ学習 総合成績</h3>
       <div class="stat-grid">
         <div class="stat-card">
           <div class="stat-val">${totalQ}</div>
