@@ -3165,7 +3165,7 @@ const MASCOT_MSGS = {
 };
 
 // ===== ステート =====
-let state = { school: '', subj: '', unit: '', level: 1, q: '', a: '', hint: '', isLong: false, schoolTab: 'target', isDrill: false, drill: [], lastUserAns: '' };
+let state = { school: '', subj: '', unit: '', level: 1, q: '', a: '', hint: '', isLong: false, schoolTab: 'target', isDrill: false, drill: [], lastUserAns: '', answerKey: null };
 let scores = {};
 let achievements = {};
 let bookmarks = [];
@@ -4672,6 +4672,7 @@ ${subjectTendency}
 下線部を示す場合は「＿語句＿」の形式で囲むこと（例：「＿聖武天皇＿は奈良時代の天皇です」→ 下線部の語句として表示される）。
 
 出力は必ず以下の形式のみ（余計な説明は不要）：
+ANSWERKEY:（算数の数値計算問題のみ。答えの数値をカンマ区切りで記載。例：8.4 または 8.4,18.0 。記述・語句問題は「なし」と書く）
 QUESTION:（問題文。明確で誤解のない表現で。）
 ANSWER:（模範解答。算数は数値と単位。記述は2〜3行の要点。）
 HINT:（解法の糸口となるヒント。答えそのものは含めない。）`;
@@ -4705,13 +4706,24 @@ HINT:（解法の糸口となるヒント。答えそのものは含めない。
       renderDrill();
       setMascot('idle', `⚡ ${problemType}ドリル！スピード勝負だ！`);
     } else {
-      // 通常：QUESTION/ANSWER/HINT形式をパース
+      // 通常：ANSWERKEY/QUESTION/ANSWER/HINT形式をパース
+      const km = text.match(/ANSWERKEY:([\s\S]*?)(?=QUESTION:|$)/);
       const qm = text.match(/QUESTION:([\s\S]*?)(?=ANSWER:|$)/);
       const am = text.match(/ANSWER:([\s\S]*?)(?=HINT:|$)/);
       const hm = text.match(/HINT:([\s\S]*?)$/);
       state.q = cleanMath(qm ? qm[1].trim() : '問題の生成に失敗しました');
       state.a = cleanMath(am ? am[1].trim() : '');
       state.hint = cleanMath(hm ? hm[1].trim() : '');
+      // answerKey パース（数値のみ抽出、「なし」や記述問題はnull）
+      state.answerKey = null;
+      if (km) {
+        const raw = km[1].trim();
+        if (raw && raw !== 'なし') {
+          const nums = raw.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+          if (nums.length === 1) state.answerKey = nums[0];
+          else if (nums.length > 1) state.answerKey = nums;
+        }
+      }
       renderQuestion();
       if (settings.timer) startTimer();
       setMascot('idle', 'じっくり考えてみよう！');
@@ -4844,6 +4856,52 @@ function renderQuestion() {
       <button class="submit-btn" id="submitBtn" onclick="submitAnswer()" disabled>答えを確認する →</button>
     </div>
   `;
+}
+
+// ===== 回答正規化・数値採点 =====
+function normalizeAnswer(input) {
+  if (!input || typeof input !== 'string') return NaN;
+  let s = input.trim();
+  // 全角数字・記号 → 半角
+  s = s.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+  s = s.replace(/[．。]/g, '.').replace(/[，、]/g, '');
+  // 空白除去
+  s = s.replace(/\s+/g, '');
+  // 末尾の単位除去（m, cm, kg, ℓ, 個, 本, 秒, 分, 時間, ㎡, ㎥, km, °, % など）
+  s = s.replace(/(%|[a-zA-Z]+|㎡|㎥|°|個|本|冊|枚|匹|頭|羽|台|種|回|人|円|歳)$/, '');
+  // 帯分数 "2と3/4" → 2.75
+  const mixedMatch = s.match(/^(-?\d+)と(\d+)\/(\d+)$/);
+  if (mixedMatch) {
+    const [, w, n, d] = mixedMatch;
+    return Number(w) + Number(n) / Number(d);
+  }
+  // 分数 "3/4" → 0.75
+  const fracMatch = s.match(/^(-?\d+)\/(\d+)$/);
+  if (fracMatch) return Number(fracMatch[1]) / Number(fracMatch[2]);
+  return parseFloat(s);
+}
+
+// answerKey（数値 or 数値配列）とユーザー入力を比較
+// 戻り値: true=正解, false=不正解, null=数値比較不可（Claudeへフォールバック）
+function judgeByNumber(userInput, answerKey) {
+  if (answerKey === null || answerKey === undefined) return null;
+  // 複数小問の場合: "（1）8.4\n（2）18.0" 形式
+  if (Array.isArray(answerKey)) {
+    const lines = userInput.split('\n').filter(l => l.trim());
+    if (lines.length !== answerKey.length) return null;
+    const results = lines.map((line, i) => {
+      const val = line.replace(/^[（(]\d+[)）]\s*/, '').trim(); // "（1）" を除去
+      const num = normalizeAnswer(val);
+      if (isNaN(num)) return null;
+      return Math.abs(num - answerKey[i]) <= 0.01;
+    });
+    if (results.some(r => r === null)) return null;
+    return results.every(Boolean); // 全問正解のみ CORRECT
+  }
+  // 単問
+  const num = normalizeAnswer(userInput);
+  if (isNaN(num)) return null;
+  return Math.abs(num - answerKey) <= 0.01;
 }
 
 // ===== ドリルモード =====
@@ -5066,6 +5124,13 @@ async function submitAnswer() {
 
   const apiKey = getApiKey();
   try {
+    // ── JS数値判定を先に試みる ──
+    const localVerdict = judgeByNumber(userAns, state.answerKey);
+    // 解説はClaudeに生成させる（VERDICT は既知なので明示して渡す）
+    const verdictHint = localVerdict !== null
+      ? `\n【採点結果（アプリが数値計算で確認済み）】${localVerdict ? 'CORRECT' : 'WRONG'}`
+      : '';
+
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -5077,19 +5142,19 @@ async function submitAnswer() {
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
         max_tokens: 1000,
-        system: `あなたは中学受験の指導経験豊富な先生です。生徒の解答を採点してください。
+        system: `あなたは中学受験の指導経験豊富な先生です。生徒の解答に対して丁寧な解説をしてください。
 
 【採点の重要ルール】
-・算数の計算問題：採点前に必ず自分で計算を検証すること。分数は通分して正確に計算する。帯分数（2と3/4）と仮分数（11/4）は同じ値として正解扱い。計算ミスで不正解にしてはいけない。
-・記述問題：模範解答と一字一句同じでなくてよい。要点が含まれていれば正解とする。
-・漢字：送り仮名・字体が正確かどうかを判定する。
-・複数小問がある場合は各小問を個別に採点し、全体の正誤をまとめて判定する。
+・【採点結果（アプリが数値計算で確認済み）】という行がある場合は、その結果を必ずVERDICTに使うこと。自分で再採点しない。
+・その行がない場合のみ、自分で採点する（記述・語句問題など）。
+・帯分数（2と3/4）と仮分数（11/4）は同じ値として正解扱い。
+・記述問題：要点が含まれていれば正解とする。
 
 出力形式（この形式のみ、他の文章不要）：
 COMMENT:（まず「この問題のポイントは〜」から始める。解き方の手順・考え方を5〜7文で丁寧に解説する。算数は式の立て方、国語は文章のどこに注目するか、理科社会は関連知識も補足する。最後の1文で「あなたの答え『…』は〜です」と自然に答え合わせをする。）
 MODEL:（模範解答を簡潔に）
 VERDICT:（CORRECT または WRONG のみ）`,
-        messages: [{ role: 'user', content: `問題：${state.q}\n模範解答：${state.a}\n生徒の答え：${userAns}\n採点してください。` }]
+        messages: [{ role: 'user', content: `問題：${state.q}\n模範解答：${state.a}\n生徒の答え：${userAns}${verdictHint}\n採点してください。` }]
       })
     });
     const data = await res.json();
@@ -5098,7 +5163,10 @@ VERDICT:（CORRECT または WRONG のみ）`,
     const cm = text.match(/COMMENT:([\s\S]*?)(?=MODEL:|VERDICT:|$)/);
     const mm = text.match(/MODEL:([\s\S]*?)(?=VERDICT:|$)/);
     const vm = text.match(/VERDICT:\s*(CORRECT|WRONG)/);
-    const isCorrect = (vm ? vm[1].trim() : 'WRONG') === 'CORRECT';
+    // JS数値判定があればそちらを優先、なければClaudeのVERDICTを使用
+    const isCorrect = localVerdict !== null
+      ? localVerdict
+      : (vm ? vm[1].trim() : 'WRONG') === 'CORRECT';
     const comment = cm ? cm[1].trim() : '';
     const model = mm ? mm[1].trim() : state.a;
 
