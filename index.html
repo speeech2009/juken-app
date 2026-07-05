@@ -4958,49 +4958,46 @@ async function submitDrill() {
 
   const apiKey = getApiKey();
 
-  // 採点用のQA一覧を作る
-  const qaList = state.drill.map((item, i) =>
-    `Q${i+1}: ${item.q}\n正解: ${item.a}\n生徒の答え: ${answers[i] || '（未回答）'}`
-  ).join('\n\n');
-
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 600,
-        system: `あなたは中学受験の採点担当です。5問の答え合わせをしてください。
-
-【採点ルール】
-・計算問題（分数・小数・整数）：自分で計算を検証してから採点すること。分数は通分して確認。帯分数と仮分数の表記違い（例：3と1/2 = 7/2）は正解とする。
-・漢字の読み書きは送り仮名・字体まで正確に判定する。
-・語彙・慣用句は意味が合っていれば表現が多少違っても正解とする。
-・未回答は不正解扱い。
-
-出力形式（この形式のみ）:
-RESULT1:CORRECT または WRONG
-RESULT2:CORRECT または WRONG
-RESULT3:CORRECT または WRONG
-RESULT4:CORRECT または WRONG
-RESULT5:CORRECT または WRONG`,
-        messages: [{ role: 'user', content: qaList }]
-      })
+    // ── Step1: JS数値比較で採点 ──
+    // 各問の正解を数値に変換して比較（分数・帯分数・小数すべて対応）
+    let results = state.drill.map((item, i) => {
+      const userVal = answers[i] || '';
+      if (!userVal) return false; // 未回答はfalse
+      const keyNum = normalizeAnswer(item.a);
+      if (!isNaN(keyNum)) {
+        // 数値問題: JSで正確に判定
+        const verdict = judgeByNumber(userVal, keyNum);
+        if (verdict !== null) return verdict;
+      }
+      return null; // 語彙・漢字などはnull→Claudeへ
     });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
-    const text = data.content?.map(c => c.text || '').join('') || '';
 
-    // 結果パース
-    const results = state.drill.map((item, i) => {
-      const m = text.match(new RegExp(`RESULT${i+1}:(CORRECT|WRONG)`));
-      return m ? m[1] === 'CORRECT' : false;
-    });
+    // nullが残っている問（テキスト問）だけClaudeに採点依頼
+    const needsClaude = results.map((r, i) => r === null ? i : -1).filter(i => i >= 0);
+    if (needsClaude.length > 0) {
+      const claudeQA = needsClaude.map(i =>
+        `Q${i+1}: ${state.drill[i].q}\n正解: ${state.drill[i].a}\n生徒の答え: ${answers[i] || '（未回答）'}`
+      ).join('\n\n');
+      const cRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-5', max_tokens: 300,
+          system: `採点担当です。各問に RESULT番号:CORRECT または WRONG のみ出力してください。漢字は字体・送り仮名まで確認すること。語彙は意味が合えば正解。`,
+          messages: [{ role: 'user', content: claudeQA }]
+        })
+      });
+      const cData = await cRes.json();
+      const cText = cData.content?.map(c => c.text || '').join('') || '';
+      needsClaude.forEach(i => {
+        const m = cText.match(new RegExp(`RESULT${i+1}:(CORRECT|WRONG)`));
+        results[i] = m ? m[1] === 'CORRECT' : false;
+      });
+    }
+    // 残ったnullはfalseに
+    results = results.map(r => r === null ? false : r);
 
     // スコア更新（5問それぞれカウント）
     const key = scoreKey(state.school, state.subj, state.unit);
@@ -5041,19 +5038,50 @@ RESULT5:CORRECT または WRONG`,
       playSound('wrong');
     }
 
+    // ── Step2: 不正解の問に解説をClaudeから取得 ──
+    const wrongItems = results.map((ok, i) => !ok ? i : -1).filter(i => i >= 0);
+    const explanations = {}; // {index: explanation}
+    if (wrongItems.length > 0) {
+      const explainQA = wrongItems.map(i =>
+        `Q${i+1}: ${state.drill[i].q}\n正解: ${state.drill[i].a}\n生徒の答え: ${answers[i] || '（未回答）'}`
+      ).join('\n\n');
+      try {
+        const eRes = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-5', max_tokens: 500,
+            system: `中学受験の先生です。不正解だった問題について、なぜ間違えたか・どう考えるかを各問1〜2文で簡潔に説明してください。
+出力形式：EXPLAIN番号: 説明文（各問1行）`,
+            messages: [{ role: 'user', content: explainQA }]
+          })
+        });
+        const eData = await eRes.json();
+        const eText = eData.content?.map(c => c.text || '').join('') || '';
+        wrongItems.forEach(i => {
+          const m = eText.match(new RegExp(`EXPLAIN${i+1}:\\s*([^\n]+)`));
+          if (m) explanations[i] = m[1].trim();
+        });
+      } catch(e) { /* 解説取得失敗は無視 */ }
+    }
+
     // 結果表示（qBodyに上書き）
     const rows = state.drill.map((item, i) => {
       const ok = results[i];
       const userAns = answers[i] || '（未回答）';
       return `
-        <div style="display:flex;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);align-items:flex-start;">
-          <div style="font-size:20px;line-height:1;padding-top:2px;">${ok ? '⭕' : '❌'}</div>
-          <div style="flex:1;">
-            <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:3px;">Q${i+1} ${renderQText(item.q)}</div>
-            <div style="font-size:12px;color:${ok ? '#2e8060' : '#c04040'};">
-              あなた：<strong>${esc(userAns)}</strong>
+        <div style="padding:10px 0;border-bottom:1px solid var(--border);">
+          <div style="display:flex;gap:8px;align-items:flex-start;">
+            <div style="font-size:20px;line-height:1;padding-top:2px;flex-shrink:0;">${ok ? '⭕' : '❌'}</div>
+            <div style="flex:1;">
+              <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:3px;">Q${i+1} ${renderQText(item.q)}</div>
+              <div style="font-size:12px;color:${ok ? '#2e8060' : '#c04040'};">
+                あなた：<strong>${esc(userAns)}</strong>
+              </div>
+              ${!ok ? `<div style="font-size:12px;color:var(--text2);margin-top:2px;">正解：<strong style="color:#1e6040;">${esc(item.a)}</strong></div>` : ''}
+              ${!ok && explanations[i] ? `<div style="font-size:11px;background:#fff9e6;border-left:3px solid #c9a227;border-radius:0 6px 6px 0;padding:6px 8px;margin-top:6px;color:var(--text);line-height:1.6;">💡 ${esc(explanations[i])}</div>` : ''}
             </div>
-            ${!ok ? `<div style="font-size:12px;color:var(--text2);margin-top:2px;">正解：<strong style="color:#1e6040;">${esc(item.a)}</strong></div>` : ''}
           </div>
         </div>`;
     }).join('');
