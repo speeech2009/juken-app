@@ -1340,6 +1340,12 @@ input, textarea, select {
       </div>
       <div id="parentPinStatus" style="font-size:11px;margin-top:4px;color:var(--text3);"></div>
     </div>
+    <!-- 採点ログ（採点精度の実測） -->
+    <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px;">
+      <div class="setting-label" style="margin-bottom:6px;">📊 採点ログ</div>
+      <div id="gradingStatsBody" style="font-size:12px;color:var(--text);line-height:1.8;"></div>
+      <button class="btn-secondary" style="width:auto;padding:6px 12px;font-size:11px;margin-top:8px;" onclick="exportGradingLog()">ログをエクスポート</button>
+    </div>
   </div>
 
   <!-- マスコット（武将先生） -->
@@ -3165,7 +3171,7 @@ const MASCOT_MSGS = {
 };
 
 // ===== ステート =====
-let state = { school: '', subj: '', unit: '', level: 1, q: '', a: '', hint: '', isLong: false, schoolTab: 'target', isDrill: false, drill: [], lastUserAns: '', answerKey: null };
+let state = { school: '', subj: '', unit: '', level: 1, q: '', a: '', hint: '', isLong: false, schoolTab: 'target', isDrill: false, drill: [], lastUserAns: '', answerKey: null, answerKeySource: null };
 let scores = {};
 let achievements = {};
 let bookmarks = [];
@@ -3559,6 +3565,70 @@ function saveAll() {
   } catch(e) {}
 }
 
+// ===== 採点ログ（実際の採点精度を計測するための記録） =====
+// answerKeySource: 'js_eval'（JSが独立計算＝最も信頼できる）/ 'llm_fallback'（AI申告値）/ 'llm_verdict'（AIが直接CORRECT/WRONGを判定）
+function logGradingEvent(entry) {
+  try {
+    const log = JSON.parse(localStorage.getItem('gradingLog') || '[]');
+    log.push({
+      id: Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+      ts: Date.now(),
+      disputed: false,
+      ...entry,
+    });
+    while (log.length > 1000) log.shift(); // リングバッファ：最大1000件
+    localStorage.setItem('gradingLog', JSON.stringify(log));
+    return log[log.length - 1].id;
+  } catch (e) { return null; } // 容量超過等は無視してアプリ動作を止めない
+}
+function disputeGradingLog(id, btnEl) {
+  try {
+    const log = JSON.parse(localStorage.getItem('gradingLog') || '[]');
+    const entry = log.find(e => e.id === id);
+    if (entry) entry.disputed = true;
+    localStorage.setItem('gradingLog', JSON.stringify(log));
+  } catch (e) {}
+  if (btnEl) { btnEl.textContent = '✅ 報告しました。ありがとう'; btnEl.disabled = true; btnEl.style.opacity = '0.6'; }
+}
+function renderGradingStats() {
+  const el = document.getElementById('gradingStatsBody');
+  if (!el) return;
+  let log = [];
+  try { log = JSON.parse(localStorage.getItem('gradingLog') || '[]'); } catch (e) {}
+  const total = log.length;
+  if (total === 0) { el.innerHTML = '<div style="font-size:11px;color:var(--text3);">まだ採点記録がありません</div>'; return; }
+  const correct = log.filter(e => e.verdict === 'correct').length;
+  const disputed = log.filter(e => e.disputed).length;
+  const sourceLabel = { js_eval: 'JS計算検証', llm_fallback: 'AI申告値', llm_verdict: 'AI採点', unanswered: '未回答' };
+  const bySource = {};
+  log.forEach(e => {
+    const s = e.answerKeySource || 'llm_verdict';
+    bySource[s] = bySource[s] || { total: 0, disputed: 0 };
+    bySource[s].total++;
+    if (e.disputed) bySource[s].disputed++;
+  });
+  const sourceRows = Object.entries(bySource).map(([k, v]) =>
+    `<div style="display:flex;justify-content:space-between;"><span>${sourceLabel[k] || k}</span><span>${v.total}件（異議${v.total > 0 ? Math.round(v.disputed / v.total * 100) : 0}%）</span></div>`
+  ).join('');
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;"><span>総採点数</span><span><strong>${total}</strong>件</span></div>
+    <div style="display:flex;justify-content:space-between;"><span>正答率</span><span><strong>${Math.round(correct / total * 100)}%</strong></span></div>
+    <div style="display:flex;justify-content:space-between;"><span>異議申し立て率</span><span><strong>${Math.round(disputed / total * 100)}%</strong></span></div>
+    <div style="margin-top:6px;border-top:1px dashed var(--border);padding-top:6px;">${sourceRows}</div>
+  `;
+}
+function exportGradingLog() {
+  let log = [];
+  try { log = JSON.parse(localStorage.getItem('gradingLog') || '[]'); } catch (e) {}
+  const blob = new Blob([JSON.stringify(log, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `grading_log_${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function saveApiKey() {
   const v = document.getElementById('apikeyInput').value.trim();
   if (!v) return;
@@ -3781,6 +3851,7 @@ load();
 function toggleSettings() {
   const p = document.getElementById('settingsPanel');
   p.classList.toggle('open');
+  if (p.classList.contains('open')) renderGradingStats();
 }
 
 // ===== 画面 =====
@@ -4672,6 +4743,7 @@ ${subjectTendency}
 下線部を示す場合は「＿語句＿」の形式で囲むこと（例：「＿聖武天皇＿は奈良時代の天皇です」→ 下線部の語句として表示される）。
 
 出力は必ず以下の形式のみ（余計な説明は不要）：
+ANSWEREXPR:（算数・理科などの数値計算問題のみ。答えの数値ではなく、問題の条件から答えを導く計算式そのものを、整数・分数・小数・+ - × ÷ ( ) だけで書く。文字式やLaTeXは禁止。分数は「3/5」、帯分数は「2と3/4」の形式。例：1200×(1-3/5)+150 。図形・場合の数・記述・語句問題など式一本で表せない場合は「なし」と書く）
 ANSWERKEY:（算数の数値計算問題のみ。答えの数値をカンマ区切りで記載。例：8.4 または 8.4,18.0 。記述・語句問題は「なし」と書く）
 QUESTION:（問題文。明確で誤解のない表現で。）
 ANSWER:（模範解答。算数は数値と単位。記述は2〜3行の要点。）
@@ -4680,22 +4752,25 @@ HINT:（解法の糸口となるヒント。答えそのものは含めない。
       maxTokens = 900;
     }
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: maxTokens, system: systemPrompt, messages: [{ role: 'user', content: userMessage }] })
-    });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
-    const text = data.content?.map(c => c.text || '').join('') || '';
+    const fetchOnce = async () => {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: maxTokens, system: systemPrompt, messages: [{ role: 'user', content: userMessage }] })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message);
+      return data.content?.map(c => c.text || '').join('') || '';
+    };
 
     if (isDrill) {
       // ドリル：Q1/A1形式をパース
+      const text = await fetchOnce();
       state.drill = [];
       for (let i = 1; i <= 5; i++) {
         const qm = text.match(new RegExp(`Q${i}:([^\n]+)`));
@@ -4706,24 +4781,44 @@ HINT:（解法の糸口となるヒント。答えそのものは含めない。
       renderDrill();
       setMascot('idle', `⚡ ${problemType}ドリル！スピード勝負だ！`);
     } else {
-      // 通常：ANSWERKEY/QUESTION/ANSWER/HINT形式をパース
-      const km = text.match(/ANSWERKEY:([\s\S]*?)(?=QUESTION:|$)/);
-      const qm = text.match(/QUESTION:([\s\S]*?)(?=ANSWER:|$)/);
-      const am = text.match(/ANSWER:([\s\S]*?)(?=HINT:|$)/);
-      const hm = text.match(/HINT:([\s\S]*?)$/);
-      state.q = cleanMath(qm ? qm[1].trim() : '問題の生成に失敗しました');
-      state.a = cleanMath(am ? am[1].trim() : '');
-      state.hint = cleanMath(hm ? hm[1].trim() : '');
-      // answerKey パース（数値のみ抽出、「なし」や記述問題はnull）
-      state.answerKey = null;
-      if (km) {
-        const raw = km[1].trim();
-        if (raw && raw !== 'なし') {
-          const nums = raw.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
-          if (nums.length === 1) state.answerKey = nums[0];
-          else if (nums.length > 1) state.answerKey = nums;
+      // 通常：ANSWEREXPR/ANSWERKEY/QUESTION/ANSWER/HINT形式をパース
+      // 優先順位：①ANSWEREXPRをJSで直接計算（LLMの計算力に依存しない・最も信頼できる）
+      //           ②ANSWERKEY（LLM申告値）とANSWER本文の自己整合性チェック＋最大1回再生成
+      let parsed = null;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const text = await fetchOnce();
+        const xm = text.match(/ANSWEREXPR:([\s\S]*?)(?=ANSWERKEY:|$)/);
+        const km = text.match(/ANSWERKEY:([\s\S]*?)(?=QUESTION:|$)/);
+        const qm = text.match(/QUESTION:([\s\S]*?)(?=ANSWER:|$)/);
+        const am = text.match(/ANSWER:([\s\S]*?)(?=HINT:|$)/);
+        const hm = text.match(/HINT:([\s\S]*?)$/);
+        const q = cleanMath(qm ? qm[1].trim() : '問題の生成に失敗しました');
+        const a = cleanMath(am ? am[1].trim() : '');
+        const hint = cleanMath(hm ? hm[1].trim() : '');
+
+        let answerKey = null, answerKeySource = null;
+        const computed = xm ? evalRawExpr(cleanMath(xm[1].trim())) : null;
+        if (computed !== null) {
+          answerKey = computed.toNumber();
+          answerKeySource = 'js_eval'; // JSが独立に計算した値＝最も信頼できる
+        } else if (km) {
+          const raw = km[1].trim();
+          if (raw && raw !== 'なし') {
+            const nums = raw.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+            if (nums.length === 1) { answerKey = nums[0]; answerKeySource = 'llm_fallback'; }
+            else if (nums.length > 1) { answerKey = nums; answerKeySource = 'llm_fallback'; }
+          }
         }
+        parsed = { q, a, hint, answerKey, answerKeySource };
+        // JSで独立計算できていれば、ANSWER本文の表現ゆれがあっても再生成は不要（既に正しい値がある）
+        if (answerKeySource === 'js_eval' || answerTextMatchesKey(a, answerKey)) break;
+        console.warn(`[整合性チェック] ANSWERKEYとANSWER本文の数値が不一致（試行${attempt + 1}回目）。再生成します。`, { answerKey, a });
       }
+      state.q = parsed.q;
+      state.a = parsed.a;
+      state.hint = parsed.hint;
+      state.answerKey = parsed.answerKey;
+      state.answerKeySource = parsed.answerKeySource;
       renderQuestion();
       if (settings.timer) startTimer();
       setMascot('idle', 'じっくり考えてみよう！');
@@ -4865,6 +4960,8 @@ function normalizeAnswer(input) {
   // 全角数字・記号 → 半角
   s = s.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
   s = s.replace(/[．。]/g, '.').replace(/[，、]/g, '');
+  // 帯分数の別記法「1・5/6」「1 5/6」を「1と5/6」に統一（空白除去より前に行う必要がある）
+  s = s.replace(/^(-?\d+)[・\s]+(\d+\/\d+)$/, '$1と$2');
   // 空白除去
   s = s.replace(/\s+/g, '');
   // 末尾の単位除去（m, cm, kg, ℓ, 個, 本, 秒, 分, 時間, ㎡, ㎥, km, °, % など）
@@ -4879,6 +4976,144 @@ function normalizeAnswer(input) {
   const fracMatch = s.match(/^(-?\d+)\/(\d+)$/);
   if (fracMatch) return Number(fracMatch[1]) / Number(fracMatch[2]);
   return parseFloat(s);
+}
+
+// 問題生成の自己整合性チェック：ANSWERKEYの数値がANSWER本文中に実際に現れているか確認
+// （同じLLM呼び出し内でANSWERKEYとANSWER本文の数値が食い違う＝計算ミスの兆候）
+function answerTextMatchesKey(text, answerKey, tol = 0.01) {
+  if (answerKey === null || answerKey === undefined) return true;
+  const keys = Array.isArray(answerKey) ? answerKey : [answerKey];
+  const tokens = text.match(/-?\d+(?:と\d+\/\d+|\/\d+)?(?:\.\d+)?/g) || [];
+  const nums = tokens.map(normalizeAnswer).filter(n => !isNaN(n));
+  return keys.every(k => nums.some(n => Math.abs(n - k) <= tol));
+}
+
+// ===== 純粋な四則演算問題をJS側で直接計算して検証（LLMの計算ミスに依存しないため） =====
+class Frac {
+  constructor(n, d = 1) {
+    if (d < 0) { n = -n; d = -d; }
+    const g = Frac.gcd(Math.abs(n), Math.abs(d)) || 1;
+    this.n = n / g; this.d = d / g;
+  }
+  static gcd(a, b) { return b === 0 ? a : Frac.gcd(b, a % b); }
+  add(o) { return new Frac(this.n * o.d + o.n * this.d, this.d * o.d); }
+  sub(o) { return new Frac(this.n * o.d - o.n * this.d, this.d * o.d); }
+  mul(o) { return new Frac(this.n * o.n, this.d * o.d); }
+  div(o) { return new Frac(this.n * o.d, this.d * o.n); }
+  toNumber() { return this.n / this.d; }
+  toDisplay() { return this.d === 1 ? String(this.n) : `${this.n}/${this.d}`; }
+}
+function decToFrac(numStr) {
+  if (!numStr.includes('.')) return new Frac(parseInt(numStr, 10));
+  const [w, f] = numStr.split('.');
+  const denom = Math.pow(10, f.length);
+  return new Frac(parseInt(w || '0', 10) * denom + parseInt(f, 10), denom);
+}
+// 問題文が純粋な計算式（例：「7/12 ÷ 5/8 × 2/3 を計算しなさい。」）かを判定し、式部分だけ抜き出す
+function extractArithmeticExpr(qText) {
+  let s = qText.trim();
+  s = s.replace(/^次の計算(?:をしなさい)?[。.:：]?\s*/, '');
+  s = s.replace(/を計算しなさい[。.]?\s*$/, '');
+  s = s.replace(/[。.]\s*$/, '');
+  s = s.trim();
+  if (!/^[0-9０-９.\/×÷+\-()（） と]+$/.test(s)) return null; // 文章題等は対象外
+  return s;
+}
+function tokenizeArithmetic(expr) {
+  let s = expr.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+  s = s.replace(/（/g, '(').replace(/）/g, ')').replace(/\s+/g, '');
+  const tokens = [];
+  let i = 0;
+  while (i < s.length) {
+    const c = s[i];
+    if ('+-×÷()'.includes(c)) { tokens.push(c); i++; continue; }
+    if (/[0-9]/.test(c)) {
+      let j = i;
+      while (j < s.length && /[0-9.]/.test(s[j])) j++;
+      const numStr = s.slice(i, j);
+      if (s[j] === 'と') { // 帯分数 "2と3/4"
+        let k = j + 1;
+        while (k < s.length && /[0-9]/.test(s[k])) k++;
+        if (s[k] === '/') {
+          let m = k + 1;
+          while (m < s.length && /[0-9]/.test(s[m])) m++;
+          const whole = parseInt(numStr, 10);
+          const numer = parseInt(s.slice(j + 1, k), 10);
+          const denom = parseInt(s.slice(k + 1, m), 10);
+          tokens.push({ type: 'frac', value: new Frac(whole * denom + numer, denom) });
+          i = m; continue;
+        }
+      }
+      if (s[j] === '/') { // 分数 "3/4"
+        let k = j + 1;
+        while (k < s.length && /[0-9]/.test(s[k])) k++;
+        tokens.push({ type: 'frac', value: new Frac(parseInt(numStr, 10), parseInt(s.slice(j + 1, k), 10)) });
+        i = k; continue;
+      }
+      tokens.push({ type: 'frac', value: decToFrac(numStr) }); // 小数・整数
+      i = j; continue;
+    }
+    return null; // 未知の文字（漢字等）を含む＝計算式ではない
+  }
+  return tokens;
+}
+// トークン列を四則演算のルール（× ÷ が + - より優先、括弧対応）で評価する共通コア
+function evalTokens(tokens) {
+  if (!tokens || tokens.length === 0) return null;
+  let pos = 0;
+  const peek = () => tokens[pos];
+  const parseExpr = () => {
+    let v = parseTerm();
+    while (peek() === '+' || peek() === '-') {
+      const op = tokens[pos++];
+      v = op === '+' ? v.add(parseTerm()) : v.sub(parseTerm());
+    }
+    return v;
+  };
+  const parseTerm = () => {
+    let v = parseFactor();
+    while (peek() === '×' || peek() === '÷') {
+      const op = tokens[pos++];
+      v = op === '×' ? v.mul(parseFactor()) : v.div(parseFactor());
+    }
+    return v;
+  };
+  const parseFactor = () => {
+    if (peek() === '-') { pos++; return new Frac(0).sub(parseFactor()); }
+    if (peek() === '(') {
+      pos++;
+      const v = parseExpr();
+      if (peek() !== ')') throw new Error('mismatched parens');
+      pos++;
+      return v;
+    }
+    const t = tokens[pos++];
+    if (!t || t.type !== 'frac') throw new Error('unexpected token');
+    return t.value;
+  };
+  const result = parseExpr();
+  if (pos !== tokens.length) return null; // 余分なトークンが残る＝式として不完全
+  return result;
+}
+// 問題文から四則演算式を抽出しJSで直接計算する。計算できなければnull（文章題・語彙問題などは対象外）
+function evalArithmeticExpr(qText) {
+  try {
+    const expr = extractArithmeticExpr(qText);
+    if (!expr) return null;
+    const tokens = tokenizeArithmetic(expr);
+    return evalTokens(tokens);
+  } catch (e) { return null; }
+}
+// AIが生成した「計算式そのもの」の文字列（文章の前後を含まない）を直接評価する（ANSWEREXPR用）
+function evalRawExpr(exprStr) {
+  try {
+    if (!exprStr) return null;
+    const s = exprStr.trim();
+    if (!s || s === 'なし') return null;
+    if (!/^[0-9０-９.\/×÷+\-()（） と]+$/.test(s)) return null;
+    const tokens = tokenizeArithmetic(s);
+    return evalTokens(tokens);
+  } catch (e) { return null; }
 }
 
 // answerKey（数値 or 数値配列）とユーザー入力を比較
@@ -4961,17 +5196,33 @@ async function submitDrill() {
   try {
     // ── Step1: JS数値比較で採点 ──
     // 各問の正解を数値に変換して比較（分数・帯分数・小数すべて対応）
-    let results = state.drill.map((item, i) => {
+    // 算数の純粋な計算式問題はLLMの模範解答を信用せずJSで直接計算して検証する（計算ミス対策）
+    // graded: {verdict, source, keyNum} を保持（sourceは採点ログ・精度計測用）
+    const graded = state.drill.map((item, i) => {
       const userVal = answers[i] || '';
-      if (!userVal) return false; // 未回答はfalse
-      const keyNum = normalizeAnswer(item.a);
+      if (!userVal) return { verdict: false, source: 'unanswered', keyNum: null };
+      let keyNum = null, source = 'llm_fallback';
+      if (state.subj === '算数') {
+        const computed = evalArithmeticExpr(item.q);
+        if (computed !== null) {
+          keyNum = computed.toNumber();
+          source = 'js_eval';
+          const stated = normalizeAnswer(item.a);
+          if (isNaN(stated) || Math.abs(stated - keyNum) > 0.01) {
+            console.warn(`[ドリル計算検証] Q${i+1}の模範解答がJSの計算結果と不一致。修正します。`, { 模範解答: item.a, 計算結果: computed.toDisplay() });
+            item.a = computed.toDisplay(); // 表示・採点とも正しい計算結果に置き換える
+          }
+        }
+      }
+      if (keyNum === null) keyNum = normalizeAnswer(item.a);
       if (!isNaN(keyNum)) {
         // 数値問題: JSで正確に判定
         const verdict = judgeByNumber(userVal, keyNum);
-        if (verdict !== null) return verdict;
+        if (verdict !== null) return { verdict, source, keyNum };
       }
-      return null; // 語彙・漢字などはnull→Claudeへ
+      return { verdict: null, source: 'llm_verdict', keyNum: null }; // 語彙・漢字などはnull→Claudeへ
     });
+    let results = graded.map(g => g.verdict);
 
     // nullが残っている問（テキスト問）だけClaudeに採点依頼
     const needsClaude = results.map((r, i) => r === null ? i : -1).filter(i => i >= 0);
@@ -4998,6 +5249,18 @@ async function submitDrill() {
     }
     // 残ったnullはfalseに
     results = results.map(r => r === null ? false : r);
+
+    // 採点ログ記録（実際の採点精度を後から計測できるように）
+    const logIds = state.drill.map((item, i) => logGradingEvent({
+      mode: 'drill',
+      school: state.school, subject: state.subj, topic: state.unit, level: state.level,
+      question: item.q,
+      answerKeySource: graded[i].source,
+      answerKey: graded[i].keyNum,
+      llmRawAnswer: item.a,
+      userRaw: answers[i] || '',
+      verdict: results[i] ? 'correct' : 'wrong',
+    }));
 
     // スコア更新（5問それぞれカウント）
     const key = scoreKey(state.school, state.subj, state.unit);
@@ -5081,6 +5344,7 @@ async function submitDrill() {
               </div>
               ${!ok ? `<div style="font-size:12px;color:var(--text2);margin-top:2px;">正解：<strong style="color:#1e6040;">${esc(item.a)}</strong></div>` : ''}
               ${!ok && explanations[i] ? `<div style="font-size:11px;background:#fff9e6;border-left:3px solid #c9a227;border-radius:0 6px 6px 0;padding:6px 8px;margin-top:6px;color:var(--text);line-height:1.6;">💡 ${esc(explanations[i])}</div>` : ''}
+              ${logIds[i] ? `<button onclick="disputeGradingLog('${logIds[i]}', this)" style="font-size:10px;color:var(--text3);background:none;border:1px dashed var(--border2);border-radius:5px;padding:2px 8px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;margin-top:6px;">🚩 この判定はおかしい</button>` : ''}
             </div>
           </div>
         </div>`;
@@ -5244,8 +5508,22 @@ VERDICT:（CORRECT または WRONG のみ）`,
     // 実績チェック
     checkAchievements(isCorrect);
 
+    // 採点ログ記録（実際の採点精度を後から計測できるように）
+    const userNum = normalizeAnswer(userAns);
+    const logId = logGradingEvent({
+      mode: 'normal',
+      school: state.school, subject: state.subj, topic: state.unit, level: state.level,
+      question: state.q,
+      answerKeySource: localVerdict !== null ? state.answerKeySource : 'llm_verdict',
+      answerKey: state.answerKey,
+      llmRawAnswer: state.a,
+      userRaw: userAns,
+      userNormalized: isNaN(userNum) ? userAns : userNum,
+      verdict: isCorrect ? 'correct' : 'wrong',
+    });
+
     state.lastUserAns = userAns; // ブックマーク用に保存
-    renderResult(isCorrect, comment, model, userAns);
+    renderResult(isCorrect, comment, model, userAns, logId);
     showScreen('scrResult');
     // 武将先生パネルを追加（非同期）
     setTimeout(() => {
@@ -5263,9 +5541,12 @@ VERDICT:（CORRECT または WRONG のみ）`,
   }
 }
 
-function renderResult(isCorrect, comment, model, userAns) {
+function renderResult(isCorrect, comment, model, userAns, logId) {
   const streakBonus = isCorrect && streak >= 3
     ? `<div class="streak-bonus">🔥 ${streak}連続正解ボーナス！素晴らしい！</div>`
+    : '';
+  const disputeBtn = logId
+    ? `<button onclick="disputeGradingLog('${logId}', this)" style="font-size:11px;color:var(--text3);background:none;border:1px dashed var(--border2);border-radius:6px;padding:4px 10px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;margin-top:8px;">🚩 この判定はおかしいと思う</button>`
     : '';
   const verdictMsg = isCorrect
     ? `<div style="display:flex;align-items:center;gap:10px;background:#e8f8ee;border:2px solid #4caf7d;border-radius:14px;padding:14px 16px;">
@@ -5288,6 +5569,7 @@ function renderResult(isCorrect, comment, model, userAns) {
       </div>
       <div style="margin:14px 0 4px;">${verdictMsg}</div>
       ${streakBonus}
+      ${disputeBtn}
       <div class="action-btns">
         <button class="btn-primary" onclick="startQuestion(${state.level})">同じ難易度でもう1問 →</button>
         ${isCorrect && state.level < 5

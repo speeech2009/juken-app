@@ -1,4 +1,4 @@
-const CACHE_NAME = 'juken-v1';
+const CACHE_NAME = 'juken-v2';
 const SHELL = ['/', '/index.html', '/manifest.json', '/icon.svg'];
 
 // インストール時：アプリの骨格をキャッシュ
@@ -19,7 +19,7 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
-// リクエスト時：キャッシュ優先（API通信はネットワーク直行）
+// リクエスト時：HTMLはネットワーク優先、静的資産はキャッシュ優先（API通信はネットワーク直行）
 self.addEventListener('fetch', e => {
   // Claude APIへのリクエストはキャッシュしない
   if (e.request.url.includes('anthropic.com') ||
@@ -29,7 +29,19 @@ self.addEventListener('fetch', e => {
     e.respondWith(fetch(e.request).catch(() => new Response('', { status: 503 })));
     return;
   }
-  // それ以外はキャッシュ → ネット
+  // HTML本体はネットワーク優先（常に最新版を取得。オフライン時のみキャッシュにフォールバック）
+  if (e.request.mode === 'navigate' || e.request.url.endsWith('.html') || e.request.url.endsWith('/')) {
+    e.respondWith(
+      fetch(e.request)
+        .then(res => {
+          caches.open(CACHE_NAME).then(c => c.put(e.request, res.clone()));
+          return res;
+        })
+        .catch(() => caches.match(e.request))
+    );
+    return;
+  }
+  // それ以外（アイコン等静的資産）はキャッシュ優先
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request))
   );
