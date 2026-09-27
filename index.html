@@ -5926,23 +5926,6 @@ function renderParent() {
       </div>
     </div>
     <div class="parent-section">
-      <h3>☀️ 今日の学習</h3>
-      <div class="stat-grid">
-        <div class="stat-card">
-          <div class="stat-val">${todayLog.count}</div>
-          <div class="stat-label">本日の問題数</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-val">${todayLog.count > 0 ? Math.round(todayLog.correct/todayLog.count*100) : 0}%</div>
-          <div class="stat-label">本日の正解率</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-val">${studyTime}</div>
-          <div class="stat-label">学習時間(分)</div>
-        </div>
-      </div>
-    </div>
-    <div class="parent-section">
       <h3>📈 偏差値の推移</h3>
       ${renderTestChart()}
       <details style="margin-top:14px;">
