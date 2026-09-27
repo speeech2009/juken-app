@@ -3668,21 +3668,47 @@ function savePlayerName() {
 }
 
 // ===== テスト結果グラフ =====
+let chartFocusSubj = null;
+
+function focusChartSubj(subj) {
+  chartFocusSubj = chartFocusSubj === subj ? null : subj;
+  const svg = document.getElementById('testChartSvg');
+  if (!svg) return;
+  svg.querySelectorAll('[data-subj]').forEach(g => {
+    const s = g.getAttribute('data-subj');
+    if (chartFocusSubj === null) {
+      g.style.opacity = s === 'total' ? '1' : '0.75';
+    } else if (s === chartFocusSubj) {
+      g.style.opacity = '1';
+    } else if (s === 'total') {
+      g.style.opacity = '0.2';
+    } else {
+      g.style.opacity = '0.08';
+    }
+  });
+  document.querySelectorAll('.chart-legend-btn').forEach(btn => {
+    const s = btn.getAttribute('data-subj');
+    const active = chartFocusSubj === null || s === chartFocusSubj;
+    btn.style.opacity = active ? '1' : '0.35';
+    btn.style.fontWeight = s === chartFocusSubj ? '800' : '600';
+    btn.style.borderColor = s === chartFocusSubj ? btn.getAttribute('data-color') : 'transparent';
+  });
+}
+
 function renderTestChart() {
   if (testResults.length === 0) return '<div style="font-size:12px;color:var(--text3);padding:8px;">テスト結果がまだありません</div>';
 
-  const W = 340, H = 200, PL = 32, PR = 10, PT = 14, PB = 40;
+  const n = testResults.length;
+  const W = Math.max(340, n * 44 + 42), H = 200, PL = 32, PR = 36, PT = 14, PB = 40;
   const cW = W - PL - PR, cH = H - PT - PB;
   const minY = 25, maxY = 75;
-  const n = testResults.length;
 
   const toX = i => PL + (n === 1 ? cW / 2 : i * cW / (n - 1));
   const toY = v => PT + cH - (v - minY) / (maxY - minY) * cH;
 
-  const COLORS = { total: '#333', 算数: '#1a5fb4', 国語: '#5b3ea6', 理科: '#2d7a3a', 社会: '#8a5500' };
+  const COLORS = { total: '#555', 算数: '#1a5fb4', 国語: '#5b3ea6', 理科: '#2d7a3a', 社会: '#8a5500' };
   const LABELS = { total: '4科', 算数: '算', 国語: '国', 理科: '理', 社会: '社' };
 
-  // グリッド線（50の線を太く）
   const gridLines = [35, 40, 45, 50, 55, 60, 65, 70].map(v => {
     const y = toY(v);
     const bold = v === 50;
@@ -3690,50 +3716,51 @@ function renderTestChart() {
             <text x="${PL - 4}" y="${y + 4}" text-anchor="end" font-size="8" fill="#aaa">${v}</text>`;
   }).join('');
 
-  // 各科目のライン
   const lines = Object.entries(COLORS).map(([subj, color]) => {
     const pts = testResults
       .map((r, i) => r.scores[subj] != null ? `${toX(i)},${toY(r.scores[subj])}` : null)
       .filter(Boolean);
     if (pts.length < 2) return '';
 
-    // ライン
-    const path = `<polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="${subj === 'total' ? 2.5 : 1.5}" stroke-dasharray="${subj === 'total' ? 'none' : 'none'}" opacity="${subj === 'total' ? 1 : 0.75}"/>`;
+    const path = `<polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="${subj === 'total' ? 2.5 : 1.8}"/>`;
 
-    // 最新値ラベル
     const lastR = [...testResults].reverse().find(r => r.scores[subj] != null);
-    const lastIdx = testResults.lastIndexOf(lastR);
     const lastVal = lastR.scores[subj];
-    const lx = toX(lastIdx) + 3, ly = toY(lastVal) + 4;
-    const label = `<text x="${lx}" y="${ly}" font-size="8" fill="${color}" font-weight="700">${LABELS[subj]}</text>`;
+    const lastIdx = testResults.lastIndexOf(lastR);
+    const lx = toX(lastIdx) + 4, ly = toY(lastVal) + 4;
+    const label = `<text x="${lx}" y="${ly}" font-size="9" fill="${color}" font-weight="700">${lastVal}</text>`;
 
-    // ドット
     const dots = testResults.map((r, i) => {
       const v = r.scores[subj];
       if (v == null) return '';
-      const isLow = subj !== 'total' && v < 40;
-      return `<circle cx="${toX(i)}" cy="${toY(v)}" r="${isLow ? 5 : 3}" fill="${isLow ? '#e00' : color}" opacity="${isLow ? 1 : 0.9}"/>
-              ${subj !== 'total' && (i === n-1 || isLow) ? `<text x="${toX(i)}" y="${toY(v) - 7}" text-anchor="middle" font-size="9" fill="${isLow ? '#c0392b' : color}" font-weight="${isLow ? '800' : '600'}">${v}</text>` : ''}`;
+      const isLow = subj !== 'total' && v < 45;
+      return `<circle cx="${toX(i)}" cy="${toY(v)}" r="${subj === 'total' ? 3.5 : 2.5}" fill="${isLow ? '#c92a2a' : color}"/>`;
     }).join('');
 
-    return path + dots + label;
+    const baseOpacity = subj === 'total' ? '1' : '0.75';
+    return `<g data-subj="${subj}" style="opacity:${baseOpacity};transition:opacity 0.2s;">${path}${dots}${label}</g>`;
   }).join('');
 
-  // X軸ラベル
   const xLabels = testResults.map((r, i) =>
-    `<text x="${toX(i)}" y="${H - 4}" text-anchor="middle" font-size="8" fill="#888">${r.name.slice(0, 6)}</text>`
+    `<text x="${toX(i)}" y="${H - 4}" text-anchor="middle" font-size="7.5" fill="#888">${r.name.slice(0, 5)}</text>`
   ).join('');
 
-  return `<div style="overflow-x:auto;">
-    <svg viewBox="0 0 ${W} ${H}" width="100%" style="font-family:'DM Mono',monospace;display:block;">
-      ${gridLines}
-      ${lines}
-      ${xLabels}
+  const legendBtns = Object.entries(COLORS).map(([s, c]) => `
+    <button class="chart-legend-btn" data-subj="${s}" data-color="${c}" onclick="focusChartSubj('${s}')"
+      style="display:flex;align-items:center;gap:4px;background:none;border:1.5px solid transparent;border-radius:12px;padding:3px 8px;cursor:pointer;font-size:10px;font-family:'Noto Sans JP',sans-serif;font-weight:600;color:var(--text);transition:all 0.15s;">
+      <span style="width:14px;height:3px;background:${c};border-radius:2px;flex-shrink:0;${s === 'total' ? 'height:3px;' : ''}"></span>
+      <span style="color:${c};">${s === 'total' ? '4科目計' : s}</span>
+    </button>`).join('');
+
+  return `<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+    <svg id="testChartSvg" viewBox="0 0 ${W} ${H}" width="${Math.max(W, 340)}px" style="font-family:'DM Mono',monospace;display:block;min-width:100%;">
+      ${gridLines}${lines}${xLabels}
     </svg>
   </div>
-  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;font-size:10px;">
-    ${Object.entries(COLORS).map(([s,c]) => `<span style="display:flex;align-items:center;gap:3px;"><span style="width:16px;height:3px;background:${c};display:inline-block;border-radius:2px;"></span>${s === 'total' ? '4科目計' : s}</span>`).join('')}
-  </div>`;
+  <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;">
+    ${legendBtns}
+  </div>
+  <div style="font-size:10px;color:var(--text3);margin-top:6px;">タップで強調表示 / もう一度タップで解除</div>`;
 }
 
 function addTestResult() {
