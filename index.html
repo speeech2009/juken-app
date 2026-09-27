@@ -4607,7 +4607,7 @@ function renderLevelGrid() {
   const sc = getScore(state.school, state.subj, state.unit);
   document.getElementById('levelGrid').innerHTML = Array.from({length:5}, (_,i) => {
     const lv = i + 1;
-    const unlocked = lv <= sc.maxLevel + 1;
+    const unlocked = true;
     const pips = Array.from({length:5}, (_,j) =>
       `<div class="pip" style="background:${j < lv ? LV_COLORS[lv] : '#e0dbd0'};"></div>`).join('');
     return `<button class="lv-btn" onclick="startQuestion(${lv})" ${!unlocked ? 'disabled' : ''}>
