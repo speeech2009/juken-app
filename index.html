@@ -1591,7 +1591,7 @@ async function loadFromCloud(targetId) {
     if (d.totalAnswered != null) totalAnswered = d.totalAnswered;
     if (d.streak != null)        streak        = d.streak;
     if (d.weakUnits)     weakUnits     = d.weakUnits;
-    if (d.testResults)   testResults   = d.testResults;
+    if (d.testResults && d.testResults.length >= testResults.length) testResults = d.testResults;
     if (d.apiKey) {
       localStorage.setItem('juken_apikey', d.apiKey);
       const inp = document.getElementById('apikeyInput');
@@ -3530,7 +3530,7 @@ function load() {
       totalAnswered = d.totalAnswered || 0;
       streak = d.streak || 0;
       weakUnits = d.weakUnits || {};
-      if (d.testResults) testResults = d.testResults; // 保存済みがあれば上書き
+      if (d.testResults && d.testResults.length >= testResults.length) testResults = d.testResults;
     }
     const st = localStorage.getItem('juken_settings');
     if (st) settings = { ...settings, ...JSON.parse(st) };
