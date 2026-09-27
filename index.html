@@ -3737,8 +3737,14 @@ function renderTestChart() {
       return `<circle cx="${toX(i)}" cy="${toY(v)}" r="${subj === 'total' ? 3.5 : 2.5}" fill="${isLow ? '#c92a2a' : color}"/>`;
     }).join('');
 
+    const vals = testResults.map(r => r.scores[subj]).filter(v => v != null);
+    const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+    const avgY = toY(avg);
+    const avgLine = `<line x1="${PL}" y1="${avgY}" x2="${W - PR}" y2="${avgY}" stroke="${color}" stroke-width="1" stroke-dasharray="4,3" opacity="0.45"/>
+      <text x="${W - PR + 2}" y="${avgY + 3.5}" font-size="7.5" fill="${color}" opacity="0.7">${avg.toFixed(1)}</text>`;
+
     const baseOpacity = subj === 'total' ? '1' : '0.75';
-    return `<g data-subj="${subj}" style="opacity:${baseOpacity};transition:opacity 0.2s;">${path}${dots}${label}</g>`;
+    return `<g data-subj="${subj}" style="opacity:${baseOpacity};transition:opacity 0.2s;">${avgLine}${path}${dots}${label}</g>`;
   }).join('');
 
   const xLabels = testResults.map((r, i) =>
