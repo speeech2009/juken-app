@@ -5464,8 +5464,10 @@ async function submitAnswer() {
 
   const apiKey = getApiKey();
   try {
-    // ── JS数値判定を先に試みる ──
-    const localVerdict = judgeByNumber(userAns, state.answerKey);
+    // ── JS判定を先に試みる（数値 or 文字列完全一致） ──
+    const normalize = s => s.trim().replace(/\s+/g, '').replace(/　/g, '').toLowerCase();
+    const exactMatch = normalize(userAns) === normalize(state.a);
+    const localVerdict = exactMatch ? true : judgeByNumber(userAns, state.answerKey);
     // 解説はClaudeに生成させる（VERDICT は既知なので明示して渡す）
     const verdictHint = localVerdict !== null
       ? `\n【採点結果（アプリが数値計算で確認済み）】${localVerdict ? 'CORRECT' : 'WRONG'}`
