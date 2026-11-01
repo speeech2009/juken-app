@@ -1369,6 +1369,14 @@ input, textarea, select {
       <div style="padding:12px 16px 10px;border-bottom:1px solid var(--border);">
         <p style="font-size:12px;font-weight:700;color:var(--text2);letter-spacing:0.06em;">STEP 1 — 目標の学校を選ぶ</p>
       </div>
+      <button class="free-card" onclick="selectSchool('自由練習')" style="border-bottom:2px solid var(--border);">
+        <div style="width:40px;height:40px;border-radius:10px;background:var(--surface);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">📝</div>
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:700;color:var(--text);">自由練習</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:1px;">学校を絞らずに練習する</div>
+        </div>
+        <div style="font-size:16px;color:var(--text3);">›</div>
+      </button>
       <div id="schoolTabs" style="display:flex;gap:0;background:#f5f5f7;border-bottom:2px solid var(--border);">
         <button id="tab-target" onclick="switchSchoolTab('target')" style="flex:1;padding:11px 4px;font-size:12px;font-weight:700;font-family:'Noto Sans JP',sans-serif;border:none;border-bottom:3px solid #c9a227;background:transparent;color:#7a5500;cursor:pointer;">🏯 目標校</button>
         <button id="tab-private" onclick="switchSchoolTab('private')" style="flex:1;padding:11px 4px;font-size:12px;font-weight:700;font-family:'Noto Sans JP',sans-serif;border:none;border-bottom:3px solid transparent;background:transparent;color:var(--text2);cursor:pointer;">🏫 私立</button>
@@ -1377,14 +1385,6 @@ input, textarea, select {
         <button id="tab-shougaku" onclick="switchSchoolTab('shougaku')" style="flex:1;padding:11px 4px;font-size:12px;font-weight:700;font-family:'Noto Sans JP',sans-serif;border:none;border-bottom:3px solid transparent;background:transparent;color:var(--text2);cursor:pointer;">📚 小学生</button>
       </div>
       <div class="school-grid" id="schoolGrid"></div>
-      <button class="free-card" onclick="selectSchool('自由練習')">
-        <div style="width:48px;height:48px;border-radius:12px;background:var(--surface);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">📝</div>
-        <div style="flex:1;">
-          <div style="font-size:14px;font-weight:700;color:var(--text);">自由練習</div>
-          <div style="font-size:11px;color:var(--text2);margin-top:2px;">学校を絞らずに練習する</div>
-        </div>
-        <div style="font-size:16px;color:var(--text3);">›</div>
-      </button>
     </div>
 
     <!-- 教科選択 -->

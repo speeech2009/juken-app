@@ -1,4 +1,4 @@
-const CACHE_NAME = 'juken-v3';
+const CACHE_NAME = 'juken-v4';
 const SHELL = ['/', '/index.html', '/manifest.json', '/icon.svg'];
 
 // インストール時：アプリの骨格をキャッシュ
