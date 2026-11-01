@@ -1134,7 +1134,8 @@ body {
 
 .free-card {
   display: flex; align-items: center; gap: 14px;
-  padding: 14px 16px; margin: 0;
+  padding: 14px 16px;
+  margin: 0 0 calc(72px + env(safe-area-inset-bottom, 0px)) 0;
   background: var(--surface2);
   cursor: pointer; transition: background 0.12s;
   border: none; width: 100%;
