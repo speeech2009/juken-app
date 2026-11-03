@@ -1457,6 +1457,7 @@ input, textarea, select {
         <button class="tab-btn active" onclick="switchTab('tabScore', this)">📊 単元別</button>
         <button class="tab-btn" onclick="switchTab('tabAch', this)">🏆 実績</button>
         <button class="tab-btn" onclick="switchTab('tabBookmark', this)">🔖 あとで見る</button>
+        <button class="tab-btn" onclick="switchTab('tabWrong', this); renderWrongNotes()">✍️ 漢字</button>
       </div>
       <div class="tab-content active" id="tabScore">
         <div style="padding:12px 16px 8px;border-bottom:1px solid var(--border);">
@@ -1475,6 +1476,15 @@ input, textarea, select {
           <p style="font-size:14px;font-weight:700;">あとで見る</p>
         </div>
         <div class="bookmark-list" id="bookmarkList"></div>
+      </div>
+      <div class="tab-content" id="tabWrong">
+        <div style="padding:12px 16px 8px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <p style="font-size:14px;font-weight:700;">✍️ 漢字 間違いノート</p>
+            <p style="font-size:11px;color:var(--text2);margin-top:2px;">漢字単元で間違えた問題の一覧</p>
+          </div>
+        </div>
+        <div id="wrongNotesList" style="padding:8px 0 80px;"></div>
       </div>
     </div>
 
@@ -3957,7 +3967,7 @@ function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.getElementById('settingsPanel').classList.remove('open');
-  if (id === 'scrScore') { renderScores(); renderAchievements(); renderBookmarks(); }
+  if (id === 'scrScore') { renderScores(); renderAchievements(); renderBookmarks(); renderWrongNotes(); }
   if (id === 'scrParent') renderParent();
   if (id === 'scrSubject') renderSubjectGrid();
   if (id === 'scrSchool') renderSchoolGrid();
@@ -5680,6 +5690,53 @@ function bookmarkCurrent() {
   if (bookmarks.length > 50) bookmarks.pop();
   saveAll();
   showToast('🔖 あとで見るに追加しました！');
+}
+
+function renderWrongNotes() {
+  const el = document.getElementById('wrongNotesList');
+  if (!el) return;
+  let log = [];
+  try { log = JSON.parse(localStorage.getItem('gradingLog') || '[]'); } catch(e) {}
+  const kanjiItems = log.filter(e =>
+    e.verdict === 'wrong' &&
+    e.subject === '国語' &&
+    (e.topic || '').includes('漢字')
+  ).reverse();
+
+  if (kanjiItems.length === 0) {
+    el.innerHTML = '<div style="padding:32px 16px;text-align:center;font-size:13px;color:var(--text3);">漢字の間違い記録はまだありません📖<br><span style="font-size:11px;margin-top:6px;display:block;">国語の漢字単元を練習すると<br>ここに記録されます</span></div>';
+    return;
+  }
+
+  const fmt = ts => {
+    const d = new Date(ts);
+    return `${d.getMonth()+1}/${d.getDate()}`;
+  };
+
+  el.innerHTML = kanjiItems.map((item, i) => {
+    const q = (item.question || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const short = q.length > 120 ? q.slice(0,120) + '…' : q;
+    const ans = (item.llmRawAnswer || '').toString().slice(0,60);
+    const userAns = (item.userRaw || '').toString().slice(0,40);
+    return `
+    <div style="border-bottom:1px solid var(--border);padding:10px 16px;" onclick="
+      const d=this.querySelector('.wn-detail');
+      d.style.display=d.style.display==='none'?'block':'none';
+    ">
+      <div style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;">
+        <span style="flex-shrink:0;font-size:10px;background:var(--red-light);color:var(--red);padding:2px 6px;border-radius:10px;margin-top:1px;">✗</span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;color:var(--text);line-height:1.6;white-space:pre-wrap;word-break:break-all;">${short}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:3px;">${item.topic || ''} · ${fmt(item.ts)}</div>
+        </div>
+      </div>
+      <div class="wn-detail" style="display:none;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);">
+        ${userAns ? `<div style="font-size:11px;margin-bottom:4px;"><span style="color:var(--text3);">あなたの答え：</span><span style="color:var(--red);">${userAns.replace(/</g,'&lt;')}</span></div>` : ''}
+        ${ans ? `<div style="font-size:11px;"><span style="color:var(--text3);">正解：</span><span style="color:var(--green,#27ae60);font-weight:600;">${ans.replace(/</g,'&lt;')}</span></div>` : ''}
+        ${q.length > 120 ? `<div style="font-size:11px;color:var(--text);line-height:1.6;white-space:pre-wrap;word-break:break-all;margin-top:6px;">${q}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function renderBookmarks() {
