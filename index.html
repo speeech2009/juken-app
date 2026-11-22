@@ -1709,7 +1709,58 @@ const SAPIX_ANALYSIS = {
     { dot: 'orange', name: '理科「溶解・電熱線」計算系',           detail: '火・木 各20分。公式の確認から。溶解度表・電熱線の式を書いて解くパターンを染み込ませる。' },
     { dot: 'orange', name: '国語「説明文の読解」',                  detail: '週2回 各30分。段落ごとに「何が言いたいか」を一言でまとめる練習。物語文の調子で説明文も読めるようになってきている。' },
     { dot: 'yellow', name: '漢字の読み書き（毎日5分）',            detail: '今の強みを維持。「看護」「登用」「節度」など直近テストで間違えた字を重点的に。' },
-  ]
+  ],
+  futurePlan: [
+    {
+      month: '12月',
+      label: '応用への橋渡し',
+      color: '#1a5fb4',
+      bg: '#deeaf8',
+      icon: '🔧',
+      focus: ['算数：応用問題で「最初の1手」を見つける練習', '理科：溶解・電熱線の計算式を完全定着', '社会：江戸〜近現代の流れを通しで整理'],
+      detail: '11月マンスリーで過去最高の58.7を出した勢いを維持しながら、算数の最大の弱点「基礎は満点・応用は0点」を解消する月。応用問題を「解き切る」必要はない。まず「どこに気づけばよかったか」を理解するだけでOK。焦らず基礎の完成度を上げつつ橋渡しを意識する。',
+    },
+    {
+      month: '1月',
+      label: '過去問演習・実戦慣れ',
+      color: '#e67700',
+      bg: '#fff3bf',
+      icon: '📝',
+      focus: ['早稲田・浅野・攻玉社の過去問を本番形式で解く', '算数：応用1〜2問を確実に加点できるよう仕上げる', '社会：記述・論述問題の答え方を型として習得'],
+      detail: '過去問を本番と同じ時間・環境で解く月。正答率より「時間配分の感覚」「捨て問の判断」を体に染み込ませることが目的。早稲田の算数は「基礎を落とさず、取れる応用を確実に取る」戦略が合う。攻玉社は油断しない。浅野は社会の仕上がりが鍵。',
+    },
+    {
+      month: '2月直前',
+      label: '得点源の最終確認',
+      color: '#2d7a3a',
+      bg: '#d6f0da',
+      icon: '🎯',
+      focus: ['算数基礎・漢字・社会史料問題を絶対に落とさない', '新しいことを覚えようとしない', '睡眠・体調・精神面のコンディション管理'],
+      detail: '新しいことに手を出すのは禁止。今できることを100%出しきる準備に集中する。「算数基礎満点・漢字安定・社会史料ほぼ満点」という3本柱が確実に出れば、マンスリー換算で58〜60台を維持できる。その上で応用問題が1〜2問取れれば早稲田・浅野は十分戦える。',
+    },
+  ],
+  schoolGaps: [
+    {
+      name: '早稲田', icon: '🔴', current: 50, target: 70,
+      gap: '算数で応用問題（速さ・図形応用）から1〜2問を追加加点できれば到達圏。漢字・知識が安定しているのは有利。国語読解の安定が合否を分ける。',
+      actions: ['算数：基礎満点を維持しながら速さ・図形応用の1問目を解けるように', '国語：説明文の得点をあと5〜8点上げる', '漢字・知識は絶対に落とさない（毎日5分継続）'],
+    },
+    {
+      name: '攻玉社', icon: '🟢', current: 80, target: 80,
+      gap: '現状で安全圏。ただし本番では緊張で普段より5〜10点落ちることが多い。「いつも通り」を出せるメンタルの準備が大事。',
+      actions: ['過去問で合格最低点を確認し、余裕を数値で把握する', '本番直前は得点源（基礎・漢字）を再確認', '算数の大問1・2を確実に完答する練習'],
+    },
+    {
+      name: '浅野', icon: '🟡', current: 50, target: 70,
+      gap: '社会のオープン形式（論述・融合）が最大の鍵。史料問題は得意なので方向性は合っている。算数で基礎を落とさず応用1問を取れれば届く。',
+      actions: ['社会：因果関係の記述（60〜120字）を週2問練習', '算数：早稲田同様、基礎完璧＋応用1問戦略', '理科：溶解・電熱線の計算を確実に得点化'],
+    },
+    {
+      name: '海城', icon: '🔵', current: 30, target: 50,
+      gap: '算数Bタイプ（難問・論証型）と社会の長文論述が大きな壁。3ヶ月で50%まで引き上げるには算数の応用力アップが最重要。今は攻玉社・浅野の確保を優先しながら海城の対策は「基礎満点＋できる問題だけ確実に」の方針で。',
+      actions: ['算数：Aタイプ（基礎）を絶対に落とさない（今の満点ペースを維持）', '算数Bの易しめ問題（正答率30〜40%台）を1〜2問狙う', '社会論述：40〜80字の論述に慣れる（海城の典型パターンを見ておく）'],
+    },
+  ],
 };
 
 // ===== 学校データ =====
@@ -5959,11 +6010,78 @@ function renderSapixAnalysis() {
     </div>`;
   }).join('');
 
+  // 入試まで残り日数
+  const examDate = new Date('2027-02-01');
+  const today = new Date();
+  const daysLeft = Math.max(0, Math.ceil((examDate - today) / (1000*60*60*24)));
+  const daysColor = daysLeft <= 60 ? '#c92a2a' : daysLeft <= 90 ? '#e67700' : '#1a5fb4';
+
+  // フェーズプラン
+  const phaseHtml = (d.futurePlan || []).map(p => `
+    <div style="border-radius:10px;overflow:hidden;margin-bottom:10px;border:1px solid var(--border);">
+      <div style="background:${p.bg};padding:10px 14px;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:22px;">${p.icon}</span>
+        <div>
+          <div style="font-size:13px;font-weight:800;color:${p.color};">${p.month}　<span style="font-weight:600;font-size:12px;">${p.label}</span></div>
+        </div>
+      </div>
+      <div style="padding:10px 12px;">
+        <div style="font-size:11px;color:var(--text2);line-height:1.7;margin-bottom:8px;">${p.detail}</div>
+        <div style="font-size:10px;font-weight:700;color:${p.color};letter-spacing:0.05em;margin-bottom:5px;">フォーカスポイント</div>
+        ${p.focus.map(f => `<div style="display:flex;gap:6px;font-size:11px;color:var(--text);padding:3px 0;"><span style="color:${p.color};flex-shrink:0;">▶</span>${f}</div>`).join('')}
+      </div>
+    </div>`).join('');
+
+  // 学校別ギャップ
+  const gapHtml = (d.schoolGaps || []).map(s => {
+    const barColor = s.current >= 80 ? '#2b8a3e' : s.current >= 60 ? '#1a5fb4' : s.current >= 50 ? '#e67700' : '#c92a2a';
+    const actHtml = s.actions.map(a => `<div style="display:flex;gap:6px;font-size:11px;color:var(--text2);padding:2px 0;line-height:1.5;"><span style="flex-shrink:0;color:#1a5fb4;">•</span>${a}</div>`).join('');
+    return `
+    <div style="background:var(--surface2);border-radius:10px;padding:12px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <span style="font-size:16px;">${s.icon}</span>
+        <span style="font-size:13px;font-weight:700;color:var(--text);flex:1;">${s.name}</span>
+        <div style="font-size:11px;color:var(--text3);">現在</div>
+        <div style="font-size:18px;font-weight:900;font-family:'DM Mono',monospace;color:${barColor};min-width:40px;text-align:right;">${s.current}%</div>
+      </div>
+      <div style="height:7px;background:var(--border);border-radius:4px;overflow:hidden;margin-bottom:8px;">
+        <div style="width:${s.current}%;height:100%;background:${barColor};border-radius:4px;"></div>
+      </div>
+      <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:6px;">${s.gap}</div>
+      <div style="font-size:10px;font-weight:700;color:#1a5fb4;letter-spacing:0.05em;margin-bottom:4px;">やること</div>
+      ${actHtml}
+    </div>`;
+  }).join('');
+
   return `
+    <!-- 残り日数バナー -->
+    <div style="background:${daysColor};color:#fff;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;display:flex;align-items:center;gap:14px;">
+      <div style="font-size:38px;font-weight:900;font-family:'DM Mono',monospace;line-height:1;">${daysLeft}</div>
+      <div>
+        <div style="font-size:13px;font-weight:700;">日後に入試（2/1）</div>
+        <div style="font-size:11px;opacity:0.8;margin-top:2px;">クラス：${d.clazz}クラス　最新偏差値：58.7（11月M・過去最高）</div>
+      </div>
+    </div>
+
+    <!-- 今後に向けて フェーズプラン -->
+    <div class="parent-section">
+      <h3>🗺️ 今後に向けて　〜入試までの3ステップ〜</h3>
+      <div style="font-size:11px;color:var(--text2);margin:-4px 0 12px;">11月マンスリー58.7の勢いをどう本番につなげるか</div>
+      ${phaseHtml}
+    </div>
+
+    <!-- 学校別 ここを伸ばせば合格に近づく -->
+    <div class="parent-section">
+      <h3>🏫 学校別　合格可能性と対策ポイント</h3>
+      <div style="font-size:11px;color:var(--text2);margin:-4px 0 10px;">11月オープン結果より　50%以上が合格圏の目安</div>
+      ${gapHtml}
+      <div style="font-size:10px;color:var(--text3);margin-top:4px;">データ更新日：${d.updatedAt}</div>
+    </div>
+
     <!-- 教科別 強み・弱点 -->
     <div class="parent-section">
       <h3>📋 教科別 強み・弱点レポート</h3>
-      <div style="font-size:11px;color:var(--text2);margin:-4px 0 14px;">全9テスト（3〜8月）の結果をもとに分析　現クラス：<strong style="color:#c0392b;">${d.clazz}クラス</strong></div>
+      <div style="font-size:11px;color:var(--text2);margin:-4px 0 14px;">11月マンスリー＋オープン結果をもとに分析</div>
       ${subjectCards}
     </div>
 
@@ -5972,14 +6090,6 @@ function renderSapixAnalysis() {
       <h3>📅 今週 取り組んでほしいこと</h3>
       <div style="display:flex;flex-direction:column;gap:6px;">${todoHtml}</div>
       <div style="font-size:11px;color:var(--text3);margin-top:10px;">● 最優先　● 高優先　● 並行してやる</div>
-    </div>
-
-    <!-- 志望校合格可能性 -->
-    <div class="parent-section">
-      <h3>🏫 志望校 合格可能性（8月サピックスオープン）</h3>
-      <div style="font-size:11px;color:var(--text2);margin:-4px 0 10px;">合格可能性50%以上が「合格圏」の目安</div>
-      ${probHtml}
-      <div style="font-size:10px;color:var(--text3);margin-top:10px;">データ更新日：${d.updatedAt}</div>
     </div>
   `;
 }
